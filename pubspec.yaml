@@ -16,6 +16,7 @@ dependencies:
   firebase_core: ^3.0.0
   firebase_auth: ^5.0.0
   google_sign_in: ^6.2.0 # for Google Sign-In
+  intl_phone_field: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -30,6 +31,7 @@ flutter:
   assets:
     - assets/images/GetaWay_Logo.png
     - assets/images/Login.png
+    - assets/images/google_logo.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
