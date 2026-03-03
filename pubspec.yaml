@@ -1,0 +1,47 @@
+name: getaway_app
+description: "A new Flutter project."
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.0.0 # or latest version from pub.dev
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.3 # ← now at correct level (same as flutter_test)
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/GetaWay_Logo.png
+    - assets/images/Login.png
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/images/GetaWay_Logo.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#ffffff"
+  color_dark: "#000000"
+  image: assets/images/GetaWay_Logo.png
+  android_12:
+    image: assets/images/GetaWay_Logo.png
+    icon_background_color: "#ffffff"
+  android: true
+  ios: false
+  fullscreen: true
+  Remove: true
