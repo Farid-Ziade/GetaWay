@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,13 +10,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isLogin = true; // toggle Login / Signup
+  bool _isLogin = true;
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  String? _phoneNumber;
+
   @override
   void dispose() {
+    _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -23,45 +28,62 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleForgotPassword() {
-    // Placeholder for now – later: Firebase auth.sendPasswordResetEmail
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Enter your email first', style: GoogleFonts.poppins()),
+        ),
+      );
+      return;
+    }
+    // TODO: Later - Firebase sendPasswordResetEmail
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Password reset link sent to ${_emailController.text.isEmpty ? "your email" : _emailController.text}',
+          'Reset link sent to $email',
           style: GoogleFonts.poppins(),
         ),
-        duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  String? _validateSignup() {
+    if (_phoneNumber == null && _emailController.text.isEmpty) {
+      return 'Provide phone or email';
+    }
+    if (!_isLogin &&
+        _passwordController.text != _confirmPasswordController.text) {
+      return 'Passwords do not match';
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Full-screen mountain background
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/Login.png'),
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black38, // subtle darken for text readability
-                  BlendMode.darken,
-                ),
+                colorFilter: ColorFilter.mode(Colors.black38, BlendMode.darken),
               ),
             ),
           ),
-
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 32.0,
+                vertical: 20.0,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Title
                   Text(
                     _isLogin ? 'Welcome Back' : 'Create Account',
                     style: GoogleFonts.poppins(
@@ -74,24 +96,56 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _isLogin
-                        ? 'Sign in to plan your next getaway'
-                        : 'Join and discover weekend escapes',
+                        ? 'Sign in with phone or email'
+                        : 'Sign up with phone or email',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       color: Colors.white70,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
 
-                  // Email field
+                  IntlPhoneField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.9),
+                      hintText: 'Phone Number',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      counterText: '',
+                    ),
+                    initialCountryCode: 'LB',
+                    onChanged: (phone) => _phoneNumber = phone.completeNumber,
+                  ),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.white70)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: GoogleFonts.poppins(color: Colors.white70),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Colors.white70)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.9),
-                      hintText: 'Email',
+                      hintText: _isLogin ? 'Email' : 'Email (optional)',
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -101,14 +155,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Password field
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.9),
-                      hintText: 'Password',
+                      fillColor: Colors.white.withOpacity(0.9),
+                      hintText: _isLogin ? 'Password' : 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -118,7 +171,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Forgot Password link (only in Login mode)
                   if (_isLogin)
                     Align(
                       alignment: Alignment.centerRight,
@@ -134,7 +186,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                  // Confirm password (Signup mode only)
                   AnimatedOpacity(
                     opacity: _isLogin ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 300),
@@ -161,14 +212,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 32),
 
-                  // Main action button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: Firebase auth call here later
-                        // Placeholder: navigate forward
+                        final error = _validateSignup();
+                        if (error != null) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(error)));
+                          return;
+                        }
+                        // TODO: Firebase auth
                         Navigator.pushReplacementNamed(context, '/permission');
                       },
                       style: ElevatedButton.styleFrom(
@@ -178,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: Text(
-                        _isLogin ? 'Login' : 'Sign Up',
+                        _isLogin ? 'Sign In' : 'Sign Up',
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -187,9 +243,36 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        // TODO: Google sign-in
+                      },
+                      icon: Image.asset(
+                        'assets/images/google_logo.png',
+                        height: 40,
+                      ),
+                      label: Text(
+                        'Sign in with Google',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 24),
 
-                  // Toggle Login/Signup
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -200,11 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: GoogleFonts.poppins(color: Colors.white70),
                       ),
                       TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isLogin = !_isLogin;
-                          });
-                        },
+                        onPressed: () => setState(() => _isLogin = !_isLogin),
                         child: Text(
                           _isLogin ? 'Sign Up' : 'Login',
                           style: GoogleFonts.poppins(
