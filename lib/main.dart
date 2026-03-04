@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math'; // for Random shuffle
 import 'package:google_fonts/google_fonts.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +20,13 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: const SplashScreen(),
+      initialRoute: '/splash',
+      routes: {
+        '/splash': (context) => const SplashScreen(),
+        '/login': (context) => const LoginScreen(),
+        // Add more routes later (e.g., permission, map, chat)
+        // '/permission': (context) => const PermissionScreen(),
+      },
     );
   }
 }
@@ -43,32 +50,49 @@ class _SplashScreenState extends State<SplashScreen> {
     "Finding your next retreat...",
   ];
 
-  late List<String> shuffledTexts; // randomized order
+  late List<String> shuffledTexts;
   int currentTextIndex = 0;
   Timer? _timer;
+  bool _isPreloaded = false; // track if image is preloaded
 
   @override
   void initState() {
     super.initState();
 
-    // Shuffle once per app launch
     shuffledTexts = List.from(baseLoadingTexts)..shuffle(Random());
 
-    // Change text every 2 seconds
-    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      setState(() {
-        currentTextIndex = (currentTextIndex + 1) % shuffledTexts.length;
-      });
+    _timer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
+      if (mounted) {
+        setState(() {
+          currentTextIndex = (currentTextIndex + 1) % shuffledTexts.length;
+        });
+      }
     });
 
     // Move to login screen after 2 seconds
     Timer(const Duration(seconds: 2), () {
       _timer?.cancel();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Safe place to use context for inherited widgets (MediaQuery, etc.)
+    if (!_isPreloaded) {
+      _isPreloaded = true;
+      precacheImage(
+        const AssetImage('assets/images/Login.png'),
+        context,
+        onError: (e, s) {
+          debugPrint('Preload failed: $e');
+        },
+      );
+    }
   }
 
   @override
@@ -85,15 +109,12 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // No logo here anymore
-
-            // Rotating quote – centered and prominent
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: Text(
                 shuffledTexts[currentTextIndex],
                 style: GoogleFonts.poppins(
-                  fontSize: 24, // slightly larger
+                  fontSize: 24,
                   fontWeight: FontWeight.w600,
                   color: Colors.blue[800],
                   height: 1.4,
@@ -101,33 +122,12 @@ class _SplashScreenState extends State<SplashScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-
             const SizedBox(height: 60),
-
-            // Loading spinner
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
               strokeWidth: 5,
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// Placeholder for next screen
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text(
-          'Login / Signup Screen\n(Next step: mountain background + fields)',
-          style: GoogleFonts.poppins(fontSize: 24, color: Colors.blueGrey),
-          textAlign: TextAlign.center,
         ),
       ),
     );
