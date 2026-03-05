@@ -72,8 +72,8 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     });
 
-    // Navigate after 5 seconds
-    Timer(const Duration(seconds: 6), () {
+    // Move to login screen after 2 seconds
+    Timer(const Duration(seconds: 2), () {
       _timer?.cancel();
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
