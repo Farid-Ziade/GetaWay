@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "176542938705",
+    "project_id": "getaway-d6987",
+    "storage_bucket": "getaway-d6987.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:176542938705:android:c573875199f8423077aa70",
+        "android_client_info": {
+          "package_name": "com.example.getaway_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCB97oHgAMieWr6uKje9eg8AOi_8n0GJxY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
