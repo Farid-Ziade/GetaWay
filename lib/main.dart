@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:math'; // for Random shuffle
+import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+// Import this if you ran flutterfire configure
+// import 'firebase_options.dart';   // ← uncomment when ready
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); // ← MUST be first
+
   await Firebase.initializeApp();
+
   runApp(const MyApp());
 }
 
