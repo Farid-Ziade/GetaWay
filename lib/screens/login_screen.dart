@@ -17,6 +17,31 @@ class _LoginScreenState extends State<LoginScreen> {
   final _confirmPasswordController = TextEditingController();
 
   String? _phoneNumber;
+  bool _passwordsMatch = false;
+
+  // Visibility toggles
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_checkPasswordMatch);
+    _confirmPasswordController.addListener(_checkPasswordMatch);
+  }
+
+  void _checkPasswordMatch() {
+    final pass = _passwordController.text.trim();
+    final confirm = _confirmPasswordController.text.trim();
+
+    final match = pass.isNotEmpty && confirm.isNotEmpty && pass == confirm;
+
+    if (match != _passwordsMatch) {
+      setState(() {
+        _passwordsMatch = match;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -37,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
-    // TODO: Later - Firebase sendPasswordResetEmail
+    // TODO: Firebase sendPasswordResetEmail
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -57,6 +82,79 @@ class _LoginScreenState extends State<LoginScreen> {
       return 'Passwords do not match';
     }
     return null;
+  }
+
+  Widget _buildPasswordStrengthBar() {
+    final password = _passwordController.text.trim();
+
+    // Check requirements independently — no confirm password involved
+    bool hasLength = password.length >= 8;
+    bool hasUpper = RegExp(r'(?=.*[A-Z])').hasMatch(password);
+    bool hasNumber = RegExp(r'(?=.*\d)').hasMatch(password);
+    bool hasSpecial = RegExp(
+      r'(?=.*[@#$%^&*()_+\-=\[\]{}|;:",.<>?/])',
+    ).hasMatch(password);
+
+    // Count how many are satisfied
+    int satisfied = 0;
+    if (hasLength) satisfied++;
+    if (hasUpper) satisfied++;
+    if (hasNumber) satisfied++;
+    if (hasSpecial) satisfied++;
+
+    double progress = satisfied / 4.0;
+
+    Color barColor = satisfied == 4
+        ? Colors.green
+        : (satisfied >= 2 ? Colors.orange : Colors.red);
+
+    // Dynamic message that removes items as they are satisfied
+    List<String> missing = [];
+    if (!hasLength) missing.add('at least 8 characters');
+    if (!hasUpper) missing.add('one uppercase letter');
+    if (!hasNumber) missing.add('one number');
+    if (!hasSpecial) missing.add('one special character');
+
+    String feedbackText;
+    if (satisfied == 4) {
+      feedbackText = 'Strong password!';
+    } else if (missing.isEmpty) {
+      feedbackText = 'Password is improving...';
+    } else if (missing.length == 1) {
+      feedbackText = 'Password must contain ${missing[0]}';
+    } else if (missing.length == 2) {
+      feedbackText = 'Password must contain ${missing[0]} and ${missing[1]}';
+    } else if (missing.length == 3) {
+      feedbackText =
+          'Password must contain ${missing[0]}, ${missing[1]} and ${missing[2]}';
+    } else {
+      feedbackText =
+          'Password must contain at least one uppercase letter, one number and one special character';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(barColor),
+            minHeight: 10,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          feedbackText,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: barColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -120,7 +218,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       counterText: '',
                     ),
                     initialCountryCode: 'LB',
-                    onChanged: (phone) => _phoneNumber = phone.completeNumber,
+                    onChanged: (phone) => setState(() {
+                      _phoneNumber = phone.completeNumber;
+                    }),
                   ),
                   const SizedBox(height: 24),
 
@@ -155,21 +255,57 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Password field
                   TextField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.9),
                       hintText: _isLogin ? 'Password' : 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey[700],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: _isLogin || _passwordController.text.isEmpty
+                              ? Colors.transparent
+                              : (_passwordsMatch ? Colors.blue : Colors.red),
+                          width: 2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: _passwordsMatch ? Colors.blue : Colors.red,
+                          width: 2.5,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
+
+                  // Password strength bar + dynamic message (only in signup)
+                  if (!_isLogin) ...[
+                    _buildPasswordStrengthBar(),
+                    const SizedBox(height: 16),
+                  ],
 
                   if (_isLogin)
                     Align(
@@ -186,6 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
+                  // Confirm Password field
                   AnimatedOpacity(
                     opacity: _isLogin ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 300),
@@ -195,15 +332,49 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.only(top: 8.0),
                             child: TextField(
                               controller: _confirmPasswordController,
-                              obscureText: true,
+                              obscureText: _obscureConfirm,
                               decoration: InputDecoration(
                                 filled: true,
                                 fillColor: Colors.white.withOpacity(0.9),
                                 hintText: 'Confirm Password',
                                 prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureConfirm
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: Colors.grey[700],
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscureConfirm = !_obscureConfirm;
+                                    });
+                                  },
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color:
+                                        _confirmPasswordController.text.isEmpty
+                                        ? Colors.transparent
+                                        : (_passwordsMatch
+                                              ? Colors.blue
+                                              : Colors.red),
+                                    width: 2,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: _passwordsMatch
+                                        ? Colors.blue
+                                        : Colors.red,
+                                    width: 2.5,
+                                  ),
                                 ),
                               ),
                             ),
