@@ -82,19 +82,18 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuthAndNavigate() async {
-    // Give splash at least 2-3 seconds to feel natural (adjust as needed)
-    await Future.delayed(const Duration(seconds: 6));
-
-    // Get current user synchronously (fast, uses cached token if available)
-    final user = FirebaseAuth.instance.currentUser;
+    // Wait a minimum pleasant time so the splash animation can be appreciated
+    await Future.delayed(const Duration(milliseconds: 4500));
 
     if (!mounted) return;
 
+    // Cancel the text changer BEFORE navigation
     _timer?.cancel();
 
+    // Get current user (synchronous, very fast)
+    final user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
-      // Optional: reload to ensure token is fresh (rarely needed)
-      // await user.reload();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
