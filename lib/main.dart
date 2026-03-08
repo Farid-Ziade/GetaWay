@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// Import this if you ran flutterfire configure
-// import 'firebase_options.dart';   // ← uncomment when ready
+import 'screens/login_screen.dart';
+// import 'firebase_options.dart'; // Uncomment after flutterfire configure
+
+import 'services/auth_service.dart'; // Your AuthService
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ← MUST be first
+  WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    // options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(const MyApp());
 }
@@ -28,17 +32,14 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      initialRoute: '/splash',
-      routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        // Add more routes later (e.g., permission, map, chat)
-        // '/permission': (context) => const PermissionScreen(),
-      },
+      home: const SplashScreen(), // ← Start directly with SplashScreen
     );
   }
 }
 
+// ────────────────────────────────────────────────
+// SplashScreen now handles initial auth check
+// ────────────────────────────────────────────────
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -61,7 +62,6 @@ class _SplashScreenState extends State<SplashScreen> {
   late List<String> shuffledTexts;
   int currentTextIndex = 0;
   Timer? _timer;
-  bool _isPreloaded = false; // track if image is preloaded
 
   @override
   void initState() {
@@ -77,28 +77,32 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     });
 
-    // Move to login screen after 2 seconds
-    Timer(const Duration(seconds: 2), () {
-      _timer?.cancel();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-    });
+    // Start auth check + navigation after a minimum display time
+    _checkAuthAndNavigate();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  Future<void> _checkAuthAndNavigate() async {
+    // Give splash at least 2-3 seconds to feel natural (adjust as needed)
+    await Future.delayed(const Duration(seconds: 6));
 
-    // Safe place to use context for inherited widgets (MediaQuery, etc.)
-    if (!_isPreloaded) {
-      _isPreloaded = true;
-      precacheImage(
-        const AssetImage('assets/images/Login.png'),
+    // Get current user synchronously (fast, uses cached token if available)
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (!mounted) return;
+
+    _timer?.cancel();
+
+    if (user != null) {
+      // Optional: reload to ensure token is fresh (rarely needed)
+      // await user.reload();
+      Navigator.pushReplacement(
         context,
-        onError: (e, s) {
-          debugPrint('Preload failed: $e');
-        },
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     }
   }
@@ -136,6 +140,41 @@ class _SplashScreenState extends State<SplashScreen> {
               strokeWidth: 5,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Temporary HomeScreen placeholder
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Welcome to GetaWay'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService().logout();
+              // After logout, user will need to restart app or add auto-redirect
+              // For now: just show message or navigate manually
+              Navigator.pushReplacementNamed(
+                context,
+                '/login',
+              ); // Or use a global navigator key
+            },
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Text(
+          'You are logged in!\n(Coming soon: Map + AI Chat)',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 24),
         ),
       ),
     );
