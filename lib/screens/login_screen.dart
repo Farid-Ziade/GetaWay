@@ -16,7 +16,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  String? _phoneNumber;
+  String _phoneNumber = '';
+  bool _phoneValid = false;
   bool _passwordsMatch = false;
 
   // Visibility toggles
@@ -33,14 +34,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _checkPasswordMatch() {
     final pass = _passwordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
-
     final match = pass.isNotEmpty && confirm.isNotEmpty && pass == confirm;
-
-    if (match != _passwordsMatch) {
-      setState(() {
-        _passwordsMatch = match;
-      });
-    }
+    setState(() {
+      _passwordsMatch = match;
+    });
   }
 
   @override
@@ -73,12 +70,40 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  bool _isValidEmail(String email) =>
+      RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email);
+
+  bool _isPasswordStrong() {
+    final p = _passwordController.text.trim();
+    return p.length >= 8 &&
+        RegExp(r'[A-Z]').hasMatch(p) &&
+        RegExp(r'\d').hasMatch(p) &&
+        RegExp(r'[@#$%^&*()_+\-=\[\]{}|;:",.<>?/]').hasMatch(p);
+  }
+
   String? _validateSignup() {
-    if (_phoneNumber == null && _emailController.text.isEmpty) {
-      return 'Provide phone or email';
+    final phoneText = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (_isLogin) {
+      if (phoneText.isEmpty && email.isEmpty) return 'Provide phone or email';
+      return null;
     }
-    if (!_isLogin &&
-        _passwordController.text != _confirmPasswordController.text) {
+
+    // Signup validations
+    if (_phoneNumber.isEmpty) {
+      return 'Enter a phone number';
+    }
+    if (!_phoneValid) {
+      return 'Enter a valid phone number';
+    }
+    if (email.isNotEmpty && !_isValidEmail(email)) {
+      return 'Enter a valid email address';
+    }
+    if (!_isPasswordStrong()) {
+      return 'Password does not meet all requirements';
+    }
+    if (!_passwordsMatch) {
       return 'Passwords do not match';
     }
     return null;
@@ -219,7 +244,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     initialCountryCode: 'LB',
                     onChanged: (phone) => setState(() {
-                      _phoneNumber = phone.completeNumber;
+                      _phoneNumber = phone.number;
+                      _phoneValid = phone.isValidNumber();
                     }),
                   ),
                   const SizedBox(height: 24),
@@ -301,8 +327,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Password strength bar + dynamic message (only in signup)
-                  if (!_isLogin) ...[
+                  // Password strength bar + dynamic message (only in signup, only when password has content)
+                  if (!_isLogin && _passwordController.text.isNotEmpty) ...[
                     _buildPasswordStrengthBar(),
                     const SizedBox(height: 16),
                   ],
