@@ -49,3 +49,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local secrets and environment (never commit real values)
+.env
+.env.*
+!.env.example

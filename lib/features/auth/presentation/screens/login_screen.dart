@@ -421,8 +421,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ).showSnackBar(SnackBar(content: Text(error)));
                           return;
                         }
-                        // TODO: Firebase auth
-                        Navigator.pushReplacementNamed(context, '/permission');
+                        // TODO(Phase 3): Wire Firebase email / phone OTP auth.
+                        // Phase 1: navigate to home shell so routing is valid.
+                        Navigator.pushReplacementNamed(context, '/home');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue[700],
