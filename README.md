@@ -33,7 +33,7 @@ No backend, AI logic, or advanced features have been implemented yet.
 ---
 
 ## Project Structure
-
+```
 lib/
 ├── main.dart
 ├── app/
@@ -49,7 +49,7 @@ lib/
 │   │   └── widgets/
 │   └── ...
 └── shared/
-
+```
 ---
 
 ## Entry Point
@@ -101,6 +101,7 @@ Each feature is isolated inside lib/features/.
 
 Example structure:
 
+```
 features/
 ├── auth/
 │   ├── screens/
@@ -109,6 +110,7 @@ features/
 ├── home/
 │   ├── screens/
 │   └── widgets/
+```
 
 Benefits:
 - Modular design
