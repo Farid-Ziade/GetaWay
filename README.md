@@ -1,8 +1,11 @@
-# GetaWay 
+````markdown
+# 📱 GetaWay v2
 
-## Phase 1: UI and basic firebase
+## Phase 1: UI + Firebase Setup
 
-## Project Overview
+---
+
+## 🧠 Project Overview
 
 GetaWay v2 is a production-oriented Flutter application designed to help users plan smart weekend getaways.
 
@@ -11,29 +14,32 @@ The app will:
 - Use the user’s location
 - Display nearby places on a map
 - Use weather data to improve recommendations
-- Generate AI-based trip plans (via backend)
+- Generate AI-based trip plans via backend
 - Allow budget customization
-- Save trips and avoid duplicate recommendations
+- Save trips
+- Avoid duplicate recommendations
 
 ---
 
-## Current Project State
+## 🏗️ Current Project State
 
 At this stage, the application has been structured using a clean and scalable architecture.
 
 ### Focus so far:
 - Project structure setup
 - UI foundation
-- App entrypoint refactoring (thin main.dart)
-- Firebase initialization (basic)
+- App entrypoint refactoring with a thin `main.dart`
+- Firebase initialization using platform options
 - Feature-based architecture
+- Authentication integration for Email, Google, and Phone testing
 
-No backend, AI logic, or advanced features have been implemented yet.
+No backend, AI logic, map/location feature, weather integration, or saved trips system has been implemented yet.
 
 ---
 
-## Project Structure
-```
+## 🧩 Project Structure
+
+```text
 lib/
 ├── main.dart
 ├── app/
@@ -50,58 +56,68 @@ lib/
 │   └── ...
 └── shared/
 ```
+
 ---
 
-## Entry Point
+## 🚀 Entry Point
 
-File: lib/main.dart
+**File:** `lib/main.dart`
 
-This file is the starting point of the application.
+This file is the starting point of the Flutter application.
 
-Responsibilities:
+### Responsibilities:
 - Initialize Flutter bindings
 - Initialize Firebase
 - Launch the main app widget
 
-Flow:
-- WidgetsFlutterBinding.ensureInitialized() prepares Flutter
-- Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform) connects the app using FlutterFire-generated options (Android configured; add other platforms with `flutterfire configure` when needed)
-- runApp(GetawayApp) starts the UI
+### Current flow:
 
-Important:
-- This file is intentionally minimal (thin entrypoint)
-- No UI or business logic should be placed here
+```dart
+WidgetsFlutterBinding.ensureInitialized();
 
----
+await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
 
-## App Configuration
-
-File: lib/app/getaway_app.dart
-
-This file defines the main application configuration.
-
-Responsibilities:
-- Define MaterialApp
-- Manage routing/navigation
-- Apply global theme
-- Set initial screen
-
-Why this separation:
-- Keeps main.dart clean
-- Makes scaling easier
-- Centralizes app-level configuration
-
----
-
-## Architecture Approach
-
-The app uses a feature-based architecture.
-
-Each feature is isolated inside lib/features/.
-
-Example structure:
-
+runApp(const GetawayApp());
 ```
+
+### Why it is structured this way:
+- `main.dart` stays small and clean
+- UI code is not placed inside the entry point
+- App configuration is moved to `GetawayApp`
+- This makes the project easier to maintain and scale
+
+---
+
+## 🎯 App Configuration
+
+**File:** `lib/app/getaway_app.dart`
+
+This file contains the main app-level configuration.
+
+### Responsibilities:
+- Define the main `MaterialApp`
+- Manage app navigation and routes
+- Apply the global theme
+- Set the initial screen
+
+### Why this separation matters:
+- Keeps `main.dart` focused only on app startup
+- Centralizes navigation and theme setup
+- Makes future changes easier as the app grows
+
+---
+
+## 🧱 Architecture Approach
+
+The project uses a feature-based architecture.
+
+Each major feature is placed inside `lib/features/`.
+
+### Example:
+
+```text
 features/
 ├── auth/
 │   ├── screens/
@@ -112,120 +128,219 @@ features/
 │   └── widgets/
 ```
 
-Benefits:
-- Modular design
-- Easier maintenance
-- Better scalability
-- Clear separation of concerns
+### Benefits:
+- Code is organized by feature
+- Easier to find related files
+- Easier to maintain
+- Easier to scale
+- Reduces mixing unrelated logic together
 
 ---
 
-## Authentication (Current State)
+## 🔐 Authentication Current State
 
-Location: lib/features/auth/
+**Location:** `lib/features/auth/`
 
-Contains:
-- login_screen.dart → handles UI for user login
-- auth_service.dart → handles authentication logic
+### Implemented:
+- Email and password authentication
+- Google Sign-In
+- Phone Authentication in testing mode
 
-Current status:
-- UI is implemented
-- Firebase Authentication is connected
-- Basic login flow exists
-
-Important behavior:
-- Firebase automatically prevents duplicate emails
-- Errors like:
-  - email-already-in-use
-  - invalid-email
-  - weak-password
-  must be handled in the UI
-
-Current limitation:
-- Error handling is not fully implemented yet
+### Files:
+- `login_screen.dart` handles the authentication user interface
+- `auth_service.dart` handles authentication logic
 
 ---
 
-## Home Feature
+## 📧 Email and Password Authentication
 
-Location: lib/features/home/
+Email/password authentication is connected to Firebase Authentication.
 
-Purpose:
-- Acts as the main screen after login
+### Current behavior:
+- Users can sign up using email and password
+- Users can sign in using email and password
+- Firebase automatically prevents duplicate email accounts
 
-Current state:
-- Basic placeholder UI
+### Important note:
 
-Future responsibilities:
-- Display map
-- Show AI recommendations
-- Handle trip planning
+If the same email is used again, Firebase should return an error such as:
 
----
+```text
+email-already-in-use
+```
 
-## Firebase Setup
-
-Current setup:
-- Firebase is initialized in main.dart
-- firebase_options.dart is present
-- Authentication is partially working
-
-Current initialization:
-Firebase.initializeApp()
-
-Future improvement (recommended):
-Use platform-specific configuration:
-
-Firebase.initializeApp(
-  options: DefaultFirebaseOptions.currentPlatform
-)
+This error still needs to be displayed properly in the UI.
 
 ---
 
-## Application Flow
+## 🔵 Google Sign-In
 
-1. App starts from main.dart
-2. Flutter bindings initialize
-3. Firebase initializes
-4. GetawayApp is launched
-5. MaterialApp loads configuration
-6. Initial route opens login screen
-7. Login screen uses auth_service
-8. On success → user navigates to Home screen
+Google Sign-In is working.
+
+### What was needed:
+- Firebase Authentication provider enabled
+- Android SHA-1 fingerprint added in Firebase
+- Updated `google-services.json`
+- Clean rebuild of the Flutter app
+
+### Current status:
+- User can choose a Google account
+- Google authentication completes successfully
+- User can enter the app after successful Google Sign-In
 
 ---
 
-## Known Limitations
+## 🟡 Phone Authentication
 
+Phone Authentication is implemented but currently treated as testing mode only.
+
+### Current behavior:
+- Firebase Phone Auth is connected
+- Real SMS may fail depending on region restrictions
+- Test numbers should be used during development
+
+### Example Firebase test number:
+
+```text
++16505551234
+Code: 123456
+```
+
+### Important note:
+
+Phone authentication may fail for real Lebanese numbers because Firebase can restrict SMS by region. This is not necessarily a code problem.
+
+---
+
+## 🔥 Firebase Setup
+
+Firebase is currently connected to the Flutter app.
+
+### Current setup:
+- `firebase_options.dart` exists
+- Firebase is initialized in `main.dart`
+- Email/password provider is enabled
+- Google provider is enabled
+- Phone provider is enabled for testing
+
+### Firebase initialization used:
+
+```dart
+await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
+```
+
+### Notes about Firebase files:
+- `google-services.json` is required for Android Firebase configuration
+- `firebase_options.dart` is generated by FlutterFire
+- These files are not the same as private backend secrets
+- Real secrets like OpenAI API keys must never be stored in Flutter code
+
+---
+
+## 🏠 Home Feature
+
+**Location:** `lib/features/home/`
+
+### Current purpose:
+
+The home feature acts as the screen users reach after authentication.
+
+### Current state:
+- Basic placeholder UI exists
+- Advanced trip planning features are not implemented yet
+
+### Future responsibilities:
+- Display user location
+- Show Google Map
+- Show nearby places
+- Display AI recommendations
+- Manage trip planning flow
+
+---
+
+## 🔗 Application Flow
+
+Current app flow:
+
+1. App starts from `main.dart`
+2. Flutter bindings are initialized
+3. Firebase is initialized
+4. `GetawayApp` is launched
+5. `MaterialApp` loads app configuration
+6. Login screen is displayed
+7. User selects an authentication method
+8. On successful authentication, user navigates to the home screen
+
+---
+
+## ⚠️ Known Limitations
+
+Current limitations:
 - Authentication error handling is incomplete
-- No route protection (auth guard)
-- No Firestore database yet
-- No backend implemented
-- No AI integration
-- No map/location features yet
+- Input validation is not fully implemented
+- UI does not yet show clear friendly error messages
+- No route protection or auth guard yet
+- No Firestore database integration yet
+- No backend implemented yet
+- No OpenAI integration yet
+- No map/location feature yet
 - No weather integration yet
+- No saved trips feature yet
+- Phone authentication is currently limited to testing mode
 
 ---
 
-## Current Testing Status
+## 🧪 Current Testing Status
 
+Current tested behavior:
 - App builds successfully
 - Firebase initializes correctly
-- UI loads properly
-- Navigation works at basic level
+- UI loads correctly
+- Basic navigation works
+- Email/password authentication is connected
+- Google Sign-In works
+- Phone Authentication works only in testing mode
 
 ---
 
-## Next Planned Step
+## 🧠 Next Planned Step
 
-Before adding new features:
+Before adding maps, weather, AI, or backend features, the next step is to improve the authentication system.
 
-- Improve authentication system:
-  - Proper error handling
-  - Input validation
-  - Clear user feedback
-- Add route protection
-- Clean auth service logic
+### Next authentication improvements:
+- Add proper error handling
+- Add input validation
+- Show clear user-friendly error messages
+- Add loading states
+- Add route protection using an auth guard
+- Clean and secure `auth_service.dart`
 
 ---
 
+## 🔐 Security Notes
+
+Current security decisions:
+- OpenAI API key must never be added to Flutter code
+- Future OpenAI requests must go through a backend
+- Backend secrets must be stored in environment variables
+- `.env` files must not be committed
+- Firebase Authentication is used for user identity
+- Firestore rules must later restrict users to their own data
+- User location should only be requested when needed
+- Precise location should not be stored unless required
+
+---
+
+## 📌 Development Notes
+
+Project rules:
+- Do not modify working code without testing
+- Do not refactor working features unless necessary
+- Work step by step
+- Test after each step
+- Prioritize stability before optimization
+- Keep the architecture clean and scalable
+- Document each important change before moving forward
+````
