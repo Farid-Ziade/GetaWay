@@ -39,7 +39,7 @@ No backend, AI logic, map/location feature, weather integration, or saved trips 
 
 ## 🧩 Project Structure
 
-```text
+```
 lib/
 ├── main.dart
 ├── app/
@@ -117,7 +117,7 @@ Each major feature is placed inside `lib/features/`.
 
 ### Example:
 
-```text
+```
 features/
 ├── auth/
 │   ├── screens/
