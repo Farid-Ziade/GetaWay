@@ -5,8 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:getaway_app/app/app_routes.dart';
 import 'package:getaway_app/features/auth/presentation/auth_navigation.dart';
-import 'package:getaway_app/features/auth/presentation/screens/login_screen.dart';
 
 /// Shows branding while Firebase Auth state is checked once.
 class SplashScreen extends StatefulWidget {
@@ -61,10 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (user != null) {
       await navigateAfterAuth(context);
     } else if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }
 

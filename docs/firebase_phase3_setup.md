@@ -107,3 +107,26 @@ You do **not** need Firestore enabled just to sign users in. When you save trips
 - Same email or same phone cannot belong to two different Firebase accounts for the same provider (Firebase enforces this); linking errors are shown in plain language.
 
 If something still fails, check Android **Logcat** for `FirebaseAuth` messages and confirm SHA and provider toggles above.
+
+---
+
+## 10. Phone SMS: “Could not complete…” / generic failures
+
+1. **SHA-1 / SHA-256 must match the APK you run**  
+   Run `cd android` then `.\gradlew.bat signingReport` (Windows) and copy the **debug** SHA-1 under `app` → add it in Firebase **Project settings** → your **Android** app → SHA fingerprints.  
+   After any change, download a new **google-services.json** into `android/app/`, run `flutter clean`, then `flutter run`.  
+   A mismatch often surfaces as `invalid-app-credential` (debug builds now show the Firebase **error code** in parentheses on screen).
+
+2. **Package name** must match Firebase (`applicationId` / `namespace` in Gradle vs Firebase Android app).
+
+3. **Test phone numbers** (Authentication → Sign-in method → Phone)  
+   Use **E.164** in the console (e.g. `+15555550123`) and the **fixed test code** Firebase shows. The app must send the **same** full international number (with `+`).
+
+4. **After Google sign-in, then linking phone**  
+   If you see `requires-recent-login`, sign out, sign in with Google again, then complete phone linking immediately.
+
+5. **Emulator**  
+   Use an image **with Google Play**. Phone auth often fails on “Google APIs” / AOSP images without Play.
+
+6. **Logcat**  
+   Filter `FirebaseAuth` or search for `Auth error:` (debug) to see the exact `code` Firebase returns.

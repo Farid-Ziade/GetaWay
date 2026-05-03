@@ -5,11 +5,13 @@ import 'package:intl_phone_field/phone_number.dart';
 
 import 'package:getaway_app/features/auth/data/services/auth_service.dart';
 import 'package:getaway_app/features/auth/presentation/auth_navigation.dart';
+import 'package:getaway_app/features/auth/presentation/widgets/auth_exit_scope.dart';
 
 enum _AuthIdentifier { email, phone }
 
-/// Sign in or sign up with **email** or **phone** (one at a time). After signup,
-/// the app routes to [LinkAccountScreen] until both are linked on one account.
+/// Sign in or sign up with **email** or **phone** (one at a time), or Google.
+/// After signup, the app routes to [LinkAccountScreen] until phone and identity
+/// (email/password or Google) are linked on one account.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -366,9 +368,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Stack(
+    return AuthExitScope(
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: Stack(
         children: [
           Container(
             decoration: const BoxDecoration(
@@ -638,6 +641,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

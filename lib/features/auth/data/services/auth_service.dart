@@ -245,8 +245,9 @@ class AuthService {
       case 'invalid-email':
         return 'That email does not look valid.';
       case 'wrong-password':
-      case 'invalid-credential':
         return 'Incorrect email or password.';
+      case 'invalid-credential':
+        return 'That sign-in did not work. Check your SMS code or password and try again.';
       case 'user-disabled':
         return 'This account has been disabled.';
       case 'user-not-found':
@@ -265,11 +266,32 @@ class AuthService {
         return 'The SMS session expired. Send a new code.';
       case 'account-exists-with-different-credential':
         return 'An account already exists with this email. Sign in with email first, then link your phone from settings (coming soon) or contact support.';
+      case 'invalid-app-credential':
+        return 'Phone sign-in could not verify this app. In Firebase Console → Project settings → your Android app, '
+            'confirm the SHA-1 (and SHA-256) match the keystore you use to run the app, then download a fresh '
+            'google-services.json and rebuild (flutter clean).';
+      case 'app-not-authorized':
+        return 'This app is not allowed to use Firebase Auth with this project. Check package name and google-services.json.';
+      case 'missing-client-identifier':
+        return 'Firebase Android client is misconfigured. Re-download google-services.json and run flutter clean.';
+      case 'billing-not-enabled':
+        return 'Phone authentication may require billing on your Firebase/Google Cloud project. Enable billing in Google Cloud Console.';
+      case 'captcha-check-failed':
+        return 'Safety check failed. Try again on a device with Google Play services, or use a test phone number from the Firebase Console.';
+      case 'internal-error':
+        return 'Firebase returned an internal error. Try again in a few minutes; if it persists, use Logcat and check Play services / network.';
+      case 'requires-recent-login':
+        return 'For security, sign out, sign in again with Google or email, then add your phone number once more.';
+      case 'operation-not-allowed':
+        return 'This sign-in method is disabled in Firebase. Enable Phone (and Google if needed) under Authentication → Sign-in method.';
+      case 'quota-exceeded':
+        return 'SMS quota exceeded for this project. Try again later or add a test phone number in Firebase Console.';
       default:
         if (kDebugMode) {
           debugPrint('Auth error: ${e.code} ${e.message}');
         }
-        return 'Could not complete that action. Try again.';
+        final suffix = kDebugMode ? ' (${e.code})' : '';
+        return 'Could not complete that action. Try again.$suffix';
     }
   }
 }

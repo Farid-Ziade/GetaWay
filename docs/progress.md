@@ -49,11 +49,23 @@ Roadmap phases match the main project plan (Phase 1–10).
 
 ---
 
-## Phases 4–10 (summary)
+## Phase 4 — Navigation & shell polish
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 4.1 | Central route constants (`lib/app/app_routes.dart`) | Done |
+| 4.2 | Consistent named navigation (splash → login) | Done |
+| 4.3 | Android back: confirm exit on login; confirm / sign out on link screen | Done |
+| 4.4 | Auth stream on home + link: session cleared → login with clean stack | Done |
+| 4.5 | Home empty state UI (title, icon, short copy) | Done |
+| 4.6 | Deep links / URL strategy | Planned |
+
+---
+
+## Phases 5–10 (summary)
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| 4 | Navigation flow (post-login, deep links if needed) | Planned |
 | 5 | Maps + location permissions | Planned |
 | 6 | Weather | Planned |
 | 7 | Backend API | Planned |
@@ -65,4 +77,4 @@ Roadmap phases match the main project plan (Phase 1–10).
 
 ## Last updated
 
-Phase 3: email, phone, Google sign-in, required linking (phone + identity), password reset, Firebase setup doc (`docs/firebase_phase3_setup.md`).
+Phase 4 polish: `AppRoutes`, back handling, auth listeners on shell screens, clearer home placeholder. Deep links still planned (4.6).

@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
 
+import 'package:getaway_app/app/app_routes.dart';
 import 'package:getaway_app/features/auth/data/services/auth_service.dart';
 import 'package:getaway_app/features/auth/domain/user_auth_status.dart';
 import 'package:getaway_app/features/auth/presentation/auth_navigation.dart';
+import 'package:getaway_app/features/auth/presentation/widgets/link_account_back_scope.dart';
 
 /// After signing up with email, phone, or Google, the user must finish linking
 /// so one Firebase account has **phone** plus **(email/password or Google)**.
@@ -35,12 +39,23 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
   bool _obscureConfirm = true;
   bool _passwordsMatch = false;
 
+  StreamSubscription<User?>? _authSub;
+
   @override
   void initState() {
     super.initState();
     _passwordController.addListener(_syncPasswordMatch);
     _confirmPasswordController.addListener(_syncPasswordMatch);
     WidgetsBinding.instance.addPostFrameCallback((_) => _skipIfAlreadyComplete());
+    _authSub = _auth.authStateChanges.listen((user) {
+      if (!mounted) return;
+      if (user == null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.login,
+          (_) => false,
+        );
+      }
+    });
   }
 
   Future<void> _skipIfAlreadyComplete() async {
@@ -63,6 +78,7 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -201,7 +217,7 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
   Future<void> _signOut() async {
     await _auth.logout();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   @override
@@ -210,7 +226,7 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
+          Navigator.pushReplacementNamed(context, AppRoutes.login);
         }
       });
       return const Scaffold(
@@ -221,7 +237,9 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
     final needPhone = !userHasPhone(user);
     final needIdentity = !userHasNonPhoneIdentity(user);
 
-    return Scaffold(
+    return LinkAccountBackScope(
+      onSignOut: _signOut,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Complete your account'),
         actions: [
@@ -357,6 +375,7 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
             ),
         ],
       ),
+    ),
     );
   }
 }
