@@ -76,8 +76,12 @@ Named routes registered today: `/login`, `/home`.
 6. **Configuration files**  
    `google-services.json` identifies your Firebase project. Teams often commit it for Android builds; understand it is **not** a private server key, but still treat the repo as semi-sensitive. Never commit **service account** JSON or OpenAI keys.
 
+## Firestore (later)
+
+When you add Firestore for saved trips, follow a **rules-first** mindset. A starter sketch lives in [`firestore_rules_sketch.md`](firestore_rules_sketch.md); implement collections to match that model, then paste tested rules into the Firebase console.
+
 ## What changes in the next phase
 
-**Phase 2** tightens Firebase configuration and (when you add Firestore) **security rules**. **Phase 3** replaces the login button’s placeholder navigation with real **email / Google / phone** flows and proper error handling.
+**Phase 2** (remaining slices) can add more platforms or enable Firestore when you are ready. **Phase 3** replaces the login button’s placeholder navigation with real **email / Google / phone** flows and proper error handling.
 
 When you are ready, say so and we will tackle **Phase 2** or **Phase 3** one small step at a time.

@@ -65,7 +65,7 @@ Responsibilities:
 
 Flow:
 - WidgetsFlutterBinding.ensureInitialized() prepares Flutter
-- Firebase.initializeApp() connects the app to Firebase
+- Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform) connects the app using FlutterFire-generated options (Android configured; add other platforms with `flutterfire configure` when needed)
 - runApp(GetawayApp) starts the UI
 
 Important:

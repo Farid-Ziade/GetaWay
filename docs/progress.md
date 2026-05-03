@@ -29,8 +29,10 @@ Roadmap phases match the main project plan (Phase 1–10).
 
 | Step | Description | Status |
 |------|-------------|--------|
-| 2.1 | Firebase project linked to app | Partial (`google-services.json`, `firebase_options.dart` exist) |
-| 2.2 | Document / confirm `DefaultFirebaseOptions` in `main.dart` if you want explicit options | Planned (optional; Android often uses `google-services.json`) |
+| 2.1 | Android: `android/app/google-services.json` + `lib/firebase_options.dart` (Android block) | Done (iOS not added yet) |
+| 2.2 | `main.dart` uses `DefaultFirebaseOptions.currentPlatform` | Done |
+| 2.3 | Firestore rules sketched before any user data (`docs/firestore_rules_sketch.md`) | Done |
+| 2.4 | Add iOS (or Windows) via FlutterFire when you target those platforms | Planned |
 
 ---
 
@@ -38,11 +40,12 @@ Roadmap phases match the main project plan (Phase 1–10).
 
 | Step | Description | Status |
 |------|-------------|--------|
-| 3.1 | Email/password sign-in and sign-up wired to `AuthService` | Planned |
-| 3.2 | Google Sign-In | Planned |
-| 3.3 | Phone OTP | Planned |
-| 3.4 | Password reset (replace placeholder snackbar) | Planned |
-| 3.5 | User-friendly error handling (no raw exception leakage) | Planned |
+| 3.1 | Email/password sign-in and sign-up + mandatory link screen (`/link-account`) | Done |
+| 3.2 | Phone SMS sign-in / sign-up + link to same user | Done |
+| 3.3 | Password reset email (`sendPasswordResetEmail`) | Done |
+| 3.4 | User-facing auth errors (mapped codes, no raw stack traces) | Done |
+| 3.5 | Google Sign-In (+ link on “Complete your account”) | Done |
+| 3.6 | Firebase Console checklist for providers + Android SHA | See `docs/firebase_phase3_setup.md` |
 
 ---
 
@@ -62,4 +65,4 @@ Roadmap phases match the main project plan (Phase 1–10).
 
 ## Last updated
 
-Phase 1 completed: project structure, routing fix, theme extraction, documentation, `.env` gitignore pattern.
+Phase 3: email, phone, Google sign-in, required linking (phone + identity), password reset, Firebase setup doc (`docs/firebase_phase3_setup.md`).

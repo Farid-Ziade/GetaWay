@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:intl_phone_field/phone_number.dart';
 
+import 'package:getaway_app/features/auth/data/services/auth_service.dart';
+import 'package:getaway_app/features/auth/presentation/auth_navigation.dart';
+
+enum _AuthIdentifier { email, phone }
+
+/// Sign in or sign up with **email** or **phone** (one at a time). After signup,
+/// the app routes to [LinkAccountScreen] until both are linked on one account.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -10,17 +18,24 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _auth = AuthService();
   bool _isLogin = true;
+  _AuthIdentifier _identifier = _AuthIdentifier.email;
+
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _smsController = TextEditingController();
 
-  String _phoneNumber = '';
+  String _phoneE164 = '';
   bool _phoneValid = false;
   bool _passwordsMatch = false;
 
-  // Visibility toggles
+  String? _verificationId;
+  bool _codeSent = false;
+  bool _busy = false;
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
@@ -35,9 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final pass = _passwordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
     final match = pass.isNotEmpty && confirm.isNotEmpty && pass == confirm;
-    setState(() {
-      _passwordsMatch = match;
-    });
+    setState(() => _passwordsMatch = match);
   }
 
   @override
@@ -46,28 +59,34 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _smsController.dispose();
     super.dispose();
   }
 
-  void _handleForgotPassword() {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Enter your email first', style: GoogleFonts.poppins()),
-        ),
-      );
-      return;
-    }
-    // TODO: Firebase sendPasswordResetEmail
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Reset link sent to $email',
-          style: GoogleFonts.poppins(),
-        ),
-      ),
-    );
+  void _resetPhoneFlow() {
+    _verificationId = null;
+    _codeSent = false;
+    _smsController.clear();
+  }
+
+  void _onIdentifierChanged(_AuthIdentifier v) {
+    setState(() {
+      _identifier = v;
+      _resetPhoneFlow();
+    });
+  }
+
+  void _onLoginSignupToggled() {
+    setState(() {
+      _isLogin = !_isLogin;
+      _resetPhoneFlow();
+    });
+  }
+
+  String _normalizeE164(PhoneNumber phone) {
+    final raw = phone.completeNumber.trim();
+    if (raw.startsWith('+')) return raw;
+    return '+$raw';
   }
 
   bool _isValidEmail(String email) =>
@@ -81,70 +100,100 @@ class _LoginScreenState extends State<LoginScreen> {
         RegExp(r'[@#$%^&*()_+\-=\[\]{}|;:",.<>?/]').hasMatch(p);
   }
 
-  String? _validateSignup() {
-    final phoneText = _phoneController.text.trim();
-    final email = _emailController.text.trim();
-
-    if (_isLogin) {
-      if (phoneText.isEmpty && email.isEmpty) return 'Provide phone or email';
+  String? _validate() {
+    if (_identifier == _AuthIdentifier.email) {
+      final email = _emailController.text.trim();
+      if (!_isValidEmail(email)) return 'Enter a valid email address';
+      if (_isLogin) {
+        if (_passwordController.text.isEmpty) return 'Enter your password';
+        return null;
+      }
+      if (!_isPasswordStrong()) {
+        return 'Password does not meet all requirements';
+      }
+      if (!_passwordsMatch) return 'Passwords do not match';
       return null;
     }
 
-    // Signup validations
-    if (_phoneNumber.isEmpty) {
-      return 'Enter a phone number';
-    }
-    if (!_phoneValid) {
+    // Phone path
+    if (!_phoneValid || _phoneE164.isEmpty) {
       return 'Enter a valid phone number';
     }
-    if (email.isNotEmpty && !_isValidEmail(email)) {
-      return 'Enter a valid email address';
-    }
-    if (!_isPasswordStrong()) {
-      return 'Password does not meet all requirements';
-    }
-    if (!_passwordsMatch) {
-      return 'Passwords do not match';
+    if (_codeSent) {
+      if (_smsController.text.trim().length < 6) {
+        return 'Enter the 6-digit SMS code';
+      }
     }
     return null;
   }
 
+  Future<void> _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _snack('Enter your email first');
+      return;
+    }
+    if (!_isValidEmail(email)) {
+      _snack('Enter a valid email address');
+      return;
+    }
+    setState(() => _busy = true);
+    final err = await _auth.sendPasswordResetEmail(email);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (err == null) {
+      _snack('If an account exists for that email, a reset link was sent.');
+    } else {
+      _snack(err);
+    }
+  }
+
+  Future<void> _onGooglePressed() async {
+    setState(() => _busy = true);
+    try {
+      final r = await _auth.signInWithGoogle();
+      if (!mounted) return;
+      if (r.isSuccess) {
+        await navigateAfterAuth(context);
+      } else {
+        _snack(r.errorMessage ?? 'Google sign-in failed.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg, style: GoogleFonts.poppins())));
+  }
+
   Widget _buildPasswordStrengthBar() {
     final password = _passwordController.text.trim();
-
-    // Check requirements independently — no confirm password involved
     bool hasLength = password.length >= 8;
     bool hasUpper = RegExp(r'(?=.*[A-Z])').hasMatch(password);
     bool hasNumber = RegExp(r'(?=.*\d)').hasMatch(password);
     bool hasSpecial = RegExp(
       r'(?=.*[@#$%^&*()_+\-=\[\]{}|;:",.<>?/])',
     ).hasMatch(password);
-
-    // Count how many are satisfied
     int satisfied = 0;
     if (hasLength) satisfied++;
     if (hasUpper) satisfied++;
     if (hasNumber) satisfied++;
     if (hasSpecial) satisfied++;
-
     double progress = satisfied / 4.0;
-
     Color barColor = satisfied == 4
         ? Colors.green
         : (satisfied >= 2 ? Colors.orange : Colors.red);
-
-    // Dynamic message that removes items as they are satisfied
     List<String> missing = [];
     if (!hasLength) missing.add('at least 8 characters');
     if (!hasUpper) missing.add('one uppercase letter');
     if (!hasNumber) missing.add('one number');
     if (!hasSpecial) missing.add('one special character');
-
     String feedbackText;
     if (satisfied == 4) {
       feedbackText = 'Strong password!';
-    } else if (missing.isEmpty) {
-      feedbackText = 'Password is improving...';
     } else if (missing.length == 1) {
       feedbackText = 'Password must contain ${missing[0]}';
     } else if (missing.length == 2) {
@@ -154,9 +203,8 @@ class _LoginScreenState extends State<LoginScreen> {
           'Password must contain ${missing[0]}, ${missing[1]} and ${missing[2]}';
     } else {
       feedbackText =
-          'Password must contain at least one uppercase letter, one number and one special character';
+          'Password must contain uppercase, number, and special character';
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -182,6 +230,140 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  String _primaryButtonLabel() {
+    if (_identifier == _AuthIdentifier.email) {
+      return _isLogin ? 'Sign In' : 'Sign Up';
+    }
+    if (_codeSent) {
+      return _isLogin ? 'Verify & Sign In' : 'Verify & Sign Up';
+    }
+    return 'Send SMS code';
+  }
+
+  Future<void> _onPrimaryPressed() async {
+    final err = _validate();
+    if (err != null) {
+      _snack(err);
+      return;
+    }
+
+    setState(() => _busy = true);
+
+    if (_identifier == _AuthIdentifier.email) {
+      try {
+        final email = _emailController.text.trim();
+        final password = _passwordController.text.trim();
+        if (_isLogin) {
+          final r = await _auth.signInWithEmail(email, password);
+          if (!mounted) return;
+          if (r.isSuccess) {
+            await navigateAfterAuth(context);
+          } else {
+            _snack(r.errorMessage ?? 'Sign in failed');
+          }
+        } else {
+          final r = await _auth.signUpWithEmail(email, password);
+          if (!mounted) return;
+          if (r.isSuccess) {
+            await navigateAfterAuth(context);
+          } else {
+            _snack(r.errorMessage ?? 'Sign up failed');
+          }
+        }
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
+
+    // Phone: first tap sends SMS — keep _busy until callbacks run.
+    if (!_codeSent) {
+      try {
+        await _auth.startPhoneVerification(
+          phoneNumber: _phoneE164,
+          onCodeSent: (vid, _) {
+            if (!mounted) return;
+            setState(() {
+              _verificationId = vid;
+              _codeSent = true;
+              _busy = false;
+            });
+            _snack('Code sent. Check your SMS.');
+          },
+          onError: (msg) {
+            if (!mounted) return;
+            setState(() => _busy = false);
+            _snack(msg);
+          },
+          onAutoVerified: (credential) async {
+            final r = await _auth.applyPhoneCredential(credential);
+            if (!mounted) return;
+            setState(() => _busy = false);
+            if (r.isSuccess) {
+              await navigateAfterAuth(context);
+            } else {
+              _snack(r.errorMessage ?? 'Verification failed');
+            }
+          },
+        );
+      } catch (_) {
+        if (mounted) {
+          setState(() => _busy = false);
+          _snack('Could not start phone verification.');
+        }
+      }
+      return;
+    }
+
+    final vid = _verificationId;
+    if (vid == null) {
+      if (mounted) setState(() => _busy = false);
+      _snack('Request a new code.');
+      return;
+    }
+    try {
+      final r = await _auth.signInWithPhoneSms(vid, _smsController.text);
+      if (!mounted) return;
+      if (r.isSuccess) {
+        await navigateAfterAuth(context);
+      } else {
+        _snack(r.errorMessage ?? 'Verification failed');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  InputDecoration _fieldDecoration({
+    required String hint,
+    Widget? prefix,
+    Widget? suffix,
+    Color? borderSide,
+  }) {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.9),
+      hintText: hint,
+      prefixIcon: prefix,
+      suffixIcon: suffix,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderSide ?? Colors.transparent, width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: borderSide ?? Theme.of(context).colorScheme.primary,
+          width: 2.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -199,12 +381,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32.0,
-                vertical: 20.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
@@ -219,237 +397,200 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _isLogin
-                        ? 'Sign in with phone or email'
-                        : 'Sign up with phone or email',
+                        ? 'Sign in with email or phone'
+                        : 'Sign up with email or phone (you will link the other next)',
                     style: GoogleFonts.poppins(
-                      fontSize: 16,
+                      fontSize: 14,
                       color: Colors.white70,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 40),
-
-                  IntlPhoneField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.9),
-                      hintText: 'Phone Number',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                  const SizedBox(height: 20),
+                  SegmentedButton<_AuthIdentifier>(
+                    segments: const [
+                      ButtonSegment(
+                        value: _AuthIdentifier.email,
+                        label: Text('Email'),
+                        icon: Icon(Icons.email_outlined, size: 18),
                       ),
-                      counterText: '',
-                    ),
-                    initialCountryCode: 'LB',
-                    onChanged: (phone) => setState(() {
-                      _phoneNumber = phone.number;
-                      _phoneValid = phone.isValidNumber();
-                    }),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.white70)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'OR',
-                          style: GoogleFonts.poppins(color: Colors.white70),
-                        ),
+                      ButtonSegment(
+                        value: _AuthIdentifier.phone,
+                        label: Text('Phone'),
+                        icon: Icon(Icons.phone_android, size: 18),
                       ),
-                      Expanded(child: Divider(color: Colors.white70)),
                     ],
+                    selected: {_identifier},
+                    onSelectionChanged: (s) => _onIdentifierChanged(s.first),
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return Colors.white;
+                        }
+                        return Colors.white70;
+                      }),
+                    ),
                   ),
                   const SizedBox(height: 24),
 
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.9),
-                      hintText: _isLogin ? 'Email' : 'Email (optional)',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                  if (_identifier == _AuthIdentifier.phone) ...[
+                    IntlPhoneField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: _fieldDecoration(hint: 'Phone number'),
+                      initialCountryCode: 'LB',
+                      onChanged: (phone) {
+                        bool valid = false;
+                        try {
+                          valid = phone.isValidNumber();
+                        } catch (_) {
+                          valid = false;
+                        }
+                        setState(() {
+                          _phoneE164 = _normalizeE164(phone);
+                          _phoneValid = valid;
+                        });
+                      },
+                    ),
+                    if (_codeSent) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _smsController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        style: GoogleFonts.poppins(color: Colors.black87),
+                        decoration: _fieldDecoration(
+                          hint: 'SMS code',
+                        ).copyWith(counterText: ''),
+                      ),
+                    ],
+                  ] else ...[
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: GoogleFonts.poppins(color: Colors.black87),
+                      decoration: _fieldDecoration(
+                        hint: 'Email',
+                        prefix: const Icon(Icons.email_outlined),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Password field
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.9),
-                      hintText: _isLogin ? 'Password' : 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey[700],
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: _isLogin || _passwordController.text.isEmpty
-                              ? Colors.transparent
-                              : (_passwordsMatch ? Colors.blue : Colors.red),
-                          width: 2,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: _passwordsMatch ? Colors.blue : Colors.red,
-                          width: 2.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Password strength bar + dynamic message (only in signup, only when password has content)
-                  if (!_isLogin && _passwordController.text.isNotEmpty) ...[
-                    _buildPasswordStrengthBar(),
                     const SizedBox(height: 16),
-                  ],
-
-                  if (_isLogin)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _handleForgotPassword,
-                        child: Text(
-                          'Forgot Password?',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: GoogleFonts.poppins(color: Colors.black87),
+                      decoration: _fieldDecoration(
+                        hint: 'Password',
+                        prefix: const Icon(Icons.lock_outline),
+                        suffix: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey[700],
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
                           ),
                         ),
+                        borderSide: _isLogin || _passwordController.text.isEmpty
+                            ? Colors.transparent
+                            : (_passwordsMatch ? Colors.blue : Colors.red),
                       ),
                     ),
-
-                  // Confirm Password field
-                  AnimatedOpacity(
-                    opacity: _isLogin ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 300),
-                    child: _isLogin
-                        ? const SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: TextField(
-                              controller: _confirmPasswordController,
-                              obscureText: _obscureConfirm,
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.9),
-                                hintText: 'Confirm Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirm
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                    color: Colors.grey[700],
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureConfirm = !_obscureConfirm;
-                                    });
-                                  },
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color:
-                                        _confirmPasswordController.text.isEmpty
-                                        ? Colors.transparent
-                                        : (_passwordsMatch
-                                              ? Colors.blue
-                                              : Colors.red),
-                                    width: 2,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: _passwordsMatch
-                                        ? Colors.blue
-                                        : Colors.red,
-                                    width: 2.5,
-                                  ),
-                                ),
-                              ),
+                    if (!_isLogin && _passwordController.text.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildPasswordStrengthBar(),
+                    ],
+                    if (_isLogin)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _busy ? null : _handleForgotPassword,
+                          child: Text(
+                            'Forgot Password?',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                  ),
+                        ),
+                      ),
+                    if (!_isLogin) ...[
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirm,
+                        style: GoogleFonts.poppins(color: Colors.black87),
+                        decoration: _fieldDecoration(
+                          hint: 'Confirm password',
+                          prefix: const Icon(Icons.lock_outline),
+                          suffix: IconButton(
+                            icon: Icon(
+                              _obscureConfirm
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.grey[700],
+                            ),
+                            onPressed: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
+                          ),
+                          borderSide:
+                              _confirmPasswordController.text.isEmpty
+                              ? Colors.transparent
+                              : (_passwordsMatch ? Colors.blue : Colors.red),
+                        ),
+                      ),
+                    ],
+                  ],
 
-                  const SizedBox(height: 32),
-
+                  const SizedBox(height: 28),
                   SizedBox(
-                    width: double.infinity,
                     height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        final error = _validateSignup();
-                        if (error != null) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text(error)));
-                          return;
-                        }
-                        // TODO(Phase 3): Wire Firebase email / phone OTP auth.
-                        // Phase 1: navigate to home shell so routing is valid.
-                        Navigator.pushReplacementNamed(context, '/home');
-                      },
-                      style: ElevatedButton.styleFrom(
+                    child: FilledButton(
+                      onPressed: _busy ? null : _onPrimaryPressed,
+                      style: FilledButton.styleFrom(
                         backgroundColor: Colors.blue[700],
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Text(
-                        _isLogin ? 'Sign In' : 'Sign Up',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _busy
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _primaryButtonLabel(),
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-
+                  if (_identifier == _AuthIdentifier.phone && _codeSent) ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () => setState(_resetPhoneFlow),
+                      child: Text(
+                        'Use a different number',
+                        style: GoogleFonts.poppins(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
                   SizedBox(
-                    width: double.infinity,
                     height: 56,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Google sign-in
-                      },
+                      onPressed: _busy ? null : _onGooglePressed,
                       icon: Image.asset(
                         'assets/images/google_logo.png',
                         height: 40,
@@ -469,8 +610,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -481,7 +621,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: GoogleFonts.poppins(color: Colors.white70),
                       ),
                       TextButton(
-                        onPressed: () => setState(() => _isLogin = !_isLogin),
+                        onPressed: _onLoginSignupToggled,
                         child: Text(
                           _isLogin ? 'Sign Up' : 'Login',
                           style: GoogleFonts.poppins(

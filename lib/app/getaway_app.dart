@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:getaway_app/core/theme/app_theme.dart';
+import 'package:getaway_app/features/auth/presentation/screens/link_account_screen.dart';
 import 'package:getaway_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:getaway_app/features/home/presentation/screens/home_screen.dart';
 import 'package:getaway_app/features/splash/presentation/screens/splash_screen.dart';
@@ -18,6 +19,7 @@ class GetawayApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/login': (_) => const LoginScreen(),
+        '/link-account': (_) => const LinkAccountScreen(),
         '/home': (_) => const HomeScreen(),
       },
     );
