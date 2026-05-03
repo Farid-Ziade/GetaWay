@@ -1,4 +1,3 @@
-````markdown
 # 📱 GetaWay v2
 
 ## Phase 1: UI + Firebase Setup
@@ -343,4 +342,4 @@ Project rules:
 - Prioritize stability before optimization
 - Keep the architecture clean and scalable
 - Document each important change before moving forward
-````
+
