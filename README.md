@@ -1,17 +1,49 @@
-# getaway_app
+# GetaWay Web
 
-A new Flutter project.
+Production-focused web platform for planning weekend getaways with secure auth,
+maps, weather-aware recommendations, AI-generated trip plans, and saved trips.
 
-## Getting Started
+## Stack
 
-This project is a starting point for a Flutter application.
+- Frontend: React + Vite
+- Backend: Node.js + Express
+- Auth provider (planned Phase 2): Firebase Auth for Google, phone OTP, reset email
 
-A few resources to get you started if this is your first Flutter project:
+## Repository structure
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- `frontend/`: React web application
+- `backend/`: Express API service
+- `docs/`: phase-by-phase architecture, security, and implementation notes
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Phase status
+
+- Phase 0: analysis complete
+- Phase 1: web setup complete (current)
+- Phase 2: authentication baseline complete
+- Phase 3+: pending confirmation
+
+## Quick start
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+## Authentication implemented
+
+- Email/password signup and login
+- Google sign-in
+- Password reset email
+- Phone OTP (web, Firebase + reCAPTCHA)
+- Protected dashboard route + logout
