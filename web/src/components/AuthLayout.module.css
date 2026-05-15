@@ -57,20 +57,26 @@
 }
 
 .panelHeadline {
-  font-size: clamp(var(--text-2xl), 3vw, 40px);
+  font-size: clamp(var(--text-2xl), 3vw, 44px);
   font-weight: var(--font-bold);
   color: #fff;
   letter-spacing: -1px;
-  line-height: 1.2;
-  margin-bottom: var(--space-4);
-  max-width: 380px;
+  line-height: 1.25;
+  max-width: 420px;
+  min-height: 2.6em;
 }
 
-.tagline {
-  font-size: var(--text-base);
-  color: rgba(255, 255, 255, 0.70);
-  line-height: 1.7;
-  max-width: 340px;
+.cursor {
+  display: inline-block;
+  font-weight: var(--font-normal);
+  color: var(--color-accent);
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 /* ── Right form panel ─────────────────────────────────────── */
@@ -106,8 +112,7 @@
     justify-content: space-between;
   }
 
-  .panelHeadline,
-  .tagline {
+  .panelBottom {
     display: none;
   }
 
