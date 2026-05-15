@@ -35,11 +35,19 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]             = useState('');
   const [resetSent, setResetSent]     = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setResetSent(false);
+
+    const errs = {};
+    if (!email.trim())  errs.email    = 'Email is required.';
+    if (!password)      errs.password = 'Password is required.';
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setLoading(true);
     try {
       await login(email.trim(), password);
@@ -101,13 +109,13 @@ export default function LoginPage() {
           <input
             id="email"
             type="email"
-            className={s.input}
+            className={`${s.input} ${fieldErrors.email ? s.inputError : ''}`}
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={e => { setEmail(e.target.value); setFieldErrors(fe => ({ ...fe, email: '' })); }}
             placeholder="you@example.com"
             autoComplete="email"
-            required
           />
+          {fieldErrors.email && <span className={s.fieldError}>{fieldErrors.email}</span>}
         </div>
 
         <div className={s.field}>
@@ -116,12 +124,11 @@ export default function LoginPage() {
             <input
               id="password"
               type={showPw ? 'text' : 'password'}
-              className={`${s.input} ${s.inputWithToggle}`}
+              className={`${s.input} ${s.inputWithToggle} ${fieldErrors.password ? s.inputError : ''}`}
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e => { setPassword(e.target.value); setFieldErrors(fe => ({ ...fe, password: '' })); }}
               placeholder="••••••••"
               autoComplete="current-password"
-              required
             />
             <button
               type="button"
@@ -132,6 +139,7 @@ export default function LoginPage() {
               {showPw ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
+          {fieldErrors.password && <span className={s.fieldError}>{fieldErrors.password}</span>}
           <button type="button" className={s.forgotBtn} onClick={handleForgotPassword}>
             Forgot password?
           </button>
