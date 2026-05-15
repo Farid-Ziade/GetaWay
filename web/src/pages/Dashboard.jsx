@@ -66,8 +66,8 @@ export default function Dashboard() {
   const [genError,   setGenError]   = useState('');
   const [saved,      setSaved]      = useState(false);
 
-  // Saved trips list (Phase 13 wires Firestore)
-  const [savedTrips] = useState([]);
+  // Saved trips (Phase 13 wires Firestore — for now, in-session memory)
+  const [savedTrips, setSavedTrips] = useState([]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -125,7 +125,22 @@ export default function Dashboard() {
   }
 
   function handleSave() {
-    // Phase 13: save to Firestore
+    const entry = {
+      id: Date.now(),
+      title: plan.title,
+      location: locationLabel || 'Current location',
+      budget: `$${budget}`,
+      savedAt: new Date(),
+      plan,
+    };
+    setSavedTrips(prev => [entry, ...prev]);
+    setSaved(true);
+    // Phase 13: also persist entry to Firestore here
+  }
+
+  function handleLoadSavedTrip(trip) {
+    setPlan(trip.plan);
+    setPlanStatus('success');
     setSaved(true);
   }
 
@@ -236,8 +251,16 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className={styles.savedList}>
-              {savedTrips.map((t, i) => (
-                <li key={i} className={styles.savedItem}>{t.title}</li>
+              {savedTrips.map(t => (
+                <li key={t.id} className={styles.savedItem} onClick={() => handleLoadSavedTrip(t)}>
+                  <span className={styles.savedItemTitle}>{t.title}</span>
+                  <span className={styles.savedItemMeta}>{t.location} · {t.budget}</span>
+                  <span className={styles.savedItemDate}>
+                    {t.savedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {' at '}
+                    {t.savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </li>
               ))}
             </ul>
           )}
