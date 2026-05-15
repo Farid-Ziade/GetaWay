@@ -1,3 +1,6 @@
+# ─── Node (catch-all — never commit node_modules anywhere in the repo) ────────
+node_modules/
+
 # ─── Web (React + Vite) ───────────────────────────────────────────────────────
 web/node_modules/
 web/dist/
