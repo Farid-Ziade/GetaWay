@@ -46,10 +46,14 @@
   letter-spacing: -0.4px;
 }
 
-/* Tagline — bottom */
+/* Text — vertically centered */
 .panelBottom {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: var(--space-10);
+  transform: translateY(-50%);
   z-index: 1;
+  max-width: 420px;
 }
 
 .panelHeadline {
