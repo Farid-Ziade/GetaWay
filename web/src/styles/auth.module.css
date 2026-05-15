@@ -1,0 +1,246 @@
+/* Shared form styles — imported by LoginPage and SignupPage */
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-8);
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+/* ── Fields ───────────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+}
+
+.inputError {
+  border-color: var(--color-error) !important;
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.inputWithToggle {
+  padding-right: 48px;
+}
+
+.toggleBtn {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-base);
+  line-height: 0;
+}
+
+.toggleBtn:hover {
+  color: var(--color-text);
+}
+
+.fieldError {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}
+
+.forgotBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--color-primary);
+  padding: 0;
+  text-align: right;
+  align-self: flex-end;
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.forgotBtn:hover {
+  text-decoration: underline;
+}
+
+/* ── Alerts ───────────────────────────────────────────────── */
+
+.alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin-bottom: var(--space-5);
+}
+
+.alertError {
+  background: rgba(239, 68, 68, 0.08);
+  color: #B91C1C;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.alertSuccess {
+  background: rgba(34, 197, 94, 0.08);
+  color: #15803D;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: var(--space-5) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ── Google button ────────────────────────────────────────── */
+
+.googleBtn {
+  width: 100%;
+  height: 48px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+  margin-bottom: var(--space-6);
+}
+
+.googleBtn:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-color: #9CA3AF;
+}
+
+.googleBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Footer link ──────────────────────────────────────────── */
+
+.footer {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.footer a {
+  color: var(--color-primary);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* ── Password strength bar ────────────────────────────────── */
+
+.strengthBar {
+  display: flex;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.strengthSegment {
+  flex: 1;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: background var(--transition-slow);
+}
+
+/* level 1 — weak: only first segment red */
+.level1 .strengthSegment:nth-child(1) { background: var(--color-error); }
+
+/* level 2 — fair: first two yellow */
+.level2 .strengthSegment:nth-child(1),
+.level2 .strengthSegment:nth-child(2) { background: var(--color-warning); }
+
+/* level 3 — good: first three green */
+.level3 .strengthSegment:nth-child(1),
+.level3 .strengthSegment:nth-child(2),
+.level3 .strengthSegment:nth-child(3) { background: var(--color-success); }
+
+/* level 4 — strong: all four green */
+.level4 .strengthSegment { background: var(--color-success); }
+
+.strengthLabel {
+  font-size: var(--text-xs);
+  margin-top: 5px;
+}
+
+.strengthWeak  { color: var(--color-error); }
+.strengthFair  { color: var(--color-warning); }
+.strengthGood  { color: var(--color-success); }
+.strengthStrong { color: var(--color-success); }
