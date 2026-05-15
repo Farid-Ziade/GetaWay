@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../services/authService';
+import { saveTrip, loadTrips, deleteTrip } from '../services/tripService';
 import Button from '../components/Button';
 import styles from './Dashboard.module.css';
 
@@ -66,8 +67,17 @@ export default function Dashboard() {
   const [genError,   setGenError]   = useState('');
   const [saved,      setSaved]      = useState(false);
 
-  // Saved trips (Phase 13 wires Firestore — for now, in-session memory)
-  const [savedTrips, setSavedTrips] = useState([]);
+  const [savedTrips,    setSavedTrips]    = useState([]);
+  const [tripsLoading,  setTripsLoading]  = useState(true);
+
+  // ── Load trips on mount ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.uid) return;
+    loadTrips(user.uid)
+      .then(setSavedTrips)
+      .catch(() => {})
+      .finally(() => setTripsLoading(false));
+  }, [user?.uid]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -124,24 +134,37 @@ export default function Dashboard() {
     navigate('/');
   }
 
-  function handleSave() {
+  async function handleSave() {
+    setSaved(true);
     const entry = {
-      id: Date.now(),
-      title: plan.title,
+      title:    plan.title,
       location: locationLabel || 'Current location',
-      budget: `$${budget}`,
-      savedAt: new Date(),
+      budget:   `$${budget}`,
       plan,
     };
-    setSavedTrips(prev => [entry, ...prev]);
-    setSaved(true);
-    // Phase 13: also persist entry to Firestore here
+    try {
+      const id = await saveTrip(user.uid, entry);
+      setSavedTrips(prev => [{ ...entry, id, savedAt: new Date() }, ...prev]);
+    } catch {
+      setSaved(false);
+    }
   }
 
   function handleLoadSavedTrip(trip) {
     setPlan(trip.plan);
     setPlanStatus('success');
     setSaved(true);
+  }
+
+  async function handleDeleteTrip(e, tripId) {
+    e.stopPropagation();
+    setSavedTrips(prev => prev.filter(t => t.id !== tripId));
+    try {
+      await deleteTrip(user.uid, tripId);
+    } catch {
+      // re-load if delete failed
+      loadTrips(user.uid).then(setSavedTrips).catch(() => {});
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -244,7 +267,9 @@ export default function Dashboard() {
         {/* Saved trips */}
         <div className={styles.savedSection}>
           <h3 className={styles.savedTitle}>Saved Trips</h3>
-          {savedTrips.length === 0 ? (
+          {tripsLoading ? (
+            <p className={styles.tripsLoading}>Loading trips…</p>
+          ) : savedTrips.length === 0 ? (
             <div className={styles.savedEmpty}>
               <BookmarkIcon />
               <p>No saved trips yet.<br />Generate a plan and save it here.</p>
@@ -253,7 +278,16 @@ export default function Dashboard() {
             <ul className={styles.savedList}>
               {savedTrips.map(t => (
                 <li key={t.id} className={styles.savedItem} onClick={() => handleLoadSavedTrip(t)}>
-                  <span className={styles.savedItemTitle}>{t.title}</span>
+                  <div className={styles.savedItemRow}>
+                    <span className={styles.savedItemTitle}>{t.title}</span>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={(e) => handleDeleteTrip(e, t.id)}
+                      aria-label="Delete trip"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                   <span className={styles.savedItemMeta}>{t.location} · {t.budget}</span>
                   <span className={styles.savedItemDate}>
                     {t.savedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -367,6 +401,9 @@ function LogoutIcon() {
 }
 function BookmarkIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>;
+}
+function TrashIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>;
 }
 function MapIcon() {
   return <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>;
