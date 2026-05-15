@@ -76,8 +76,14 @@ export default function LoginPage() {
     try {
       await resetPassword(email.trim());
       setResetSent(true);
-    } catch {
-      setError('Could not send reset email. Check the address and try again.');
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email address.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError('Could not send reset email. Please try again.');
+      }
     }
   }
 

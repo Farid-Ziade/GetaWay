@@ -5,6 +5,8 @@ import {
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
 } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -30,5 +32,16 @@ export async function logout() {
 }
 
 export async function resetPassword(email) {
-  await sendPasswordResetEmail(auth, email);
+  await sendPasswordResetEmail(auth, email, {
+    url: `${window.location.origin}/reset-password`,
+    handleCodeInApp: false,
+  });
+}
+
+export async function verifyResetCode(oobCode) {
+  return verifyPasswordResetCode(auth, oobCode);
+}
+
+export async function applyPasswordReset(oobCode, newPassword) {
+  await confirmPasswordReset(auth, oobCode, newPassword);
 }
