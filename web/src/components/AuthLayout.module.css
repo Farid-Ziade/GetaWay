@@ -10,7 +10,7 @@
   position: relative;
   background-image: url('/assets/images/Login.png');
   background-size: cover;
-  background-position: center;
+  background-position: 30% center;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
