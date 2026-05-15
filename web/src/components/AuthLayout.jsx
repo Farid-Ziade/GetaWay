@@ -6,14 +6,19 @@ export default function AuthLayout({ children }) {
     <div className={styles.root}>
       <div className={styles.panel}>
         <div className={styles.overlay} />
-        <div className={styles.panelContent}>
-          <Link to="/" className={styles.logo}>
-            <img src="/assets/images/GetaWay_Logo.png" alt="GetaWay" width={44} />
-            <span>GetaWay</span>
-          </Link>
+
+        {/* Logo — top left */}
+        <Link to="/" className={styles.logo}>
+          <img src="/assets/images/GetaWay_Logo.png" alt="GetaWay" width={40} />
+          <span>GetaWay</span>
+        </Link>
+
+        {/* Tagline — bottom left */}
+        <div className={styles.panelBottom}>
+          <h2 className={styles.panelHeadline}>Plan your perfect weekend.</h2>
           <p className={styles.tagline}>
-            Your AI-powered weekend planner. Pick a budget, share your location,
-            and get a full 2-day itinerary in seconds.
+            Tell us your budget and location — we'll build a full 2-day
+            itinerary in seconds.
           </p>
         </div>
       </div>
