@@ -8,9 +8,9 @@
 .panel {
   flex: 1;
   position: relative;
-  background-image: url('/assets/images/Login.png');
+  background-image: url('/assets/images/LoginAuth.png');
   background-size: cover;
-  background-position: 30% center;
+  background-position: center center;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
