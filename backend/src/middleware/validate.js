@@ -23,12 +23,15 @@ function validateBudget(budget) {
  * Express middleware: validates planner request body.
  */
 function validatePlannerRequest(req, res, next) {
-  const { lat, lng, budget } = req.body;
+  const { lat, lng, budget, location } = req.body;
 
-  if (lat === undefined || lng === undefined) {
-    return res.status(400).json({ error: 'Location (lat, lng) is required.' });
+  const hasCoords   = lat !== undefined && lng !== undefined;
+  const hasLocation = typeof location === 'string' && location.trim().length > 0;
+
+  if (!hasCoords && !hasLocation) {
+    return res.status(400).json({ error: 'Provide coordinates (lat, lng) or a location name.' });
   }
-  if (!validateCoords(lat, lng)) {
+  if (hasCoords && !validateCoords(lat, lng)) {
     return res.status(400).json({ error: 'Invalid coordinates.' });
   }
   if (budget !== undefined && !validateBudget(budget)) {

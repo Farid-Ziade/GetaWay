@@ -3,6 +3,7 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
+  updateDoc,
   doc,
   query,
   orderBy,
@@ -35,4 +36,8 @@ export async function loadTrips(userId) {
 
 export async function deleteTrip(userId, tripId) {
   await deleteDoc(doc(db, 'users', userId, 'trips', tripId));
+}
+
+export async function updateTripTitle(userId, tripId, newTitle) {
+  await updateDoc(doc(db, 'users', userId, 'trips', tripId), { title: newTitle });
 }

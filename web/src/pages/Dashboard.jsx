@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../services/authService';
-import { saveTrip, loadTrips, deleteTrip } from '../services/tripService';
+import { saveTrip, loadTrips, deleteTrip, updateTripTitle } from '../services/tripService';
+import { generatePlan } from '../services/apiService';
 import Button from '../components/Button';
 import styles from './Dashboard.module.css';
 
@@ -70,6 +71,12 @@ export default function Dashboard() {
   const [savedTrips,    setSavedTrips]    = useState([]);
   const [tripsLoading,  setTripsLoading]  = useState(true);
 
+  // Editable trip title
+  const [savedTripId,    setSavedTripId]    = useState(null);
+  const [planTitle,      setPlanTitle]      = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitleVal,   setEditTitleVal]   = useState('');
+
   // ── Load trips on mount ────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.uid) return;
@@ -89,9 +96,22 @@ export default function Dashboard() {
     setLocLoading(true);
     setLocError('');
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocationLabel('Current location');
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setCoords({ lat, lng });
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { 'Accept-Language': 'en', 'User-Agent': 'GetaWay-App/1.0' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+          const city = addr.city || addr.town || addr.village || addr.county || '';
+          const country = addr.country || '';
+          setLocationLabel(city && country ? `${city}, ${country}` : city || country || 'Current location');
+        } catch {
+          setLocationLabel('Current location');
+        }
         setLocLoading(false);
       },
       () => {
@@ -115,16 +135,23 @@ export default function Dashboard() {
     }
     setGenError('');
     setSaved(false);
+    setSavedTripId(null);
+    setPlanTitle('');
     setPlanStatus('loading');
     setPlan(null);
 
-    // Phase 11: replace with → generatePlan({ lat: coords?.lat, lng: coords?.lng, budget, location: locationLabel })
     try {
-      await new Promise(r => setTimeout(r, 2200));
-      setPlan(MOCK_PLAN);
+      const payload = {
+        budget,
+        location: locationLabel,
+        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+      };
+      const { plan: generatedPlan } = await generatePlan(payload);
+      setPlan(generatedPlan);
+      setPlanTitle(generatedPlan.title);
       setPlanStatus('success');
-    } catch {
-      setPlanError('Could not generate your plan. Please try again.');
+    } catch (err) {
+      setPlanError(err.message || 'Could not generate your plan. Please try again.');
       setPlanStatus('error');
     }
   }
@@ -135,23 +162,44 @@ export default function Dashboard() {
   }
 
   async function handleSave() {
+    const title = planTitle || plan.title;
     setSaved(true);
     const entry = {
-      title:    plan.title,
+      title,
       location: locationLabel || 'Current location',
       budget:   `$${budget}`,
-      plan,
+      plan: { ...plan, title },
     };
     try {
       const id = await saveTrip(user.uid, entry);
+      setSavedTripId(id);
       setSavedTrips(prev => [{ ...entry, id, savedAt: new Date() }, ...prev]);
     } catch {
       setSaved(false);
     }
   }
 
+  async function handleTitleSave(newTitle) {
+    const trimmed = newTitle.trim();
+    setIsEditingTitle(false);
+    if (!trimmed || trimmed === planTitle) return;
+    const prevTitle = planTitle;
+    setPlanTitle(trimmed);
+    if (savedTripId) {
+      setSavedTrips(prev => prev.map(t => t.id === savedTripId ? { ...t, title: trimmed } : t));
+      try {
+        await updateTripTitle(user.uid, savedTripId, trimmed);
+      } catch {
+        setPlanTitle(prevTitle);
+        setSavedTrips(prev => prev.map(t => t.id === savedTripId ? { ...t, title: prevTitle } : t));
+      }
+    }
+  }
+
   function handleLoadSavedTrip(trip) {
     setPlan(trip.plan);
+    setPlanTitle(trip.title);
+    setSavedTripId(trip.id);
     setPlanStatus('success');
     setSaved(true);
   }
@@ -334,10 +382,30 @@ export default function Dashboard() {
             {/* Plan header */}
             <div className={styles.planHeader}>
               <div>
-                <h2 className={styles.planTitle}>{plan.title}</h2>
+                {isEditingTitle ? (
+                  <input
+                    className={styles.titleInput}
+                    value={editTitleVal}
+                    onChange={e => setEditTitleVal(e.target.value)}
+                    onBlur={() => handleTitleSave(editTitleVal)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter')  { e.target.blur(); }
+                      if (e.key === 'Escape') { setIsEditingTitle(false); setEditTitleVal(planTitle); }
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <div
+                    className={styles.titleWrapper}
+                    onClick={() => { setIsEditingTitle(true); setEditTitleVal(planTitle || plan.title); }}
+                  >
+                    <h2 className={styles.planTitle}>{planTitle || plan.title}</h2>
+                    <span className={styles.titleEditHint}><PencilIcon /></span>
+                  </div>
+                )}
                 <div className={styles.planMeta}>
-                  <span><WeatherIcon /> {plan.weather}</span>
-                  <span><CostIcon /> Est. {plan.totalCost} total</span>
+                  {plan.weather && <span><WeatherIcon /> {plan.weather}</span>}
+                  {plan.totalCost && <span><CostIcon /> Est. {plan.totalCost} total</span>}
                 </div>
               </div>
               <button
@@ -413,4 +481,7 @@ function WeatherIcon() {
 }
 function CostIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+}
+function PencilIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 }

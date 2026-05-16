@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import styles from './AuthLayout.module.css';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import styles from "./AuthLayout.module.css";
 
 const PHRASES = [
-  'Plan your perfect weekend.',
-  'Plan your perfect escape.',
-  'Discover hidden adventures.',
-  'Find your next getaway.',
-  'Create unforgettable memories.',
+  "Plan your perfect weekend.",
+  "Plan your perfect escape.",
+  "Discover hidden adventures.",
+  "Find your next GetaWay.",
+  "Create unforgettable memories.",
 ];
 
 function useTypewriter(phrases) {
-  const [displayed, setDisplayed]   = useState('');
-  const [phraseIdx, setPhraseIdx]   = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [phraseIdx, setPhraseIdx] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -20,7 +20,10 @@ function useTypewriter(phrases) {
 
     if (!isDeleting) {
       if (displayed.length < current.length) {
-        const t = setTimeout(() => setDisplayed(current.slice(0, displayed.length + 1)), 65);
+        const t = setTimeout(
+          () => setDisplayed(current.slice(0, displayed.length + 1)),
+          65,
+        );
         return () => clearTimeout(t);
       } else {
         const t = setTimeout(() => setIsDeleting(true), 2200);
@@ -28,11 +31,14 @@ function useTypewriter(phrases) {
       }
     } else {
       if (displayed.length > 0) {
-        const t = setTimeout(() => setDisplayed(current.slice(0, displayed.length - 1)), 32);
+        const t = setTimeout(
+          () => setDisplayed(current.slice(0, displayed.length - 1)),
+          32,
+        );
         return () => clearTimeout(t);
       } else {
         setIsDeleting(false);
-        setPhraseIdx(i => (i + 1) % phrases.length);
+        setPhraseIdx((i) => (i + 1) % phrases.length);
       }
     }
   }, [displayed, isDeleting, phraseIdx, phrases]);
@@ -55,15 +61,14 @@ export default function AuthLayout({ children }) {
 
         <div className={styles.panelBottom}>
           <h2 className={styles.panelHeadline}>
-            {text}<span className={styles.cursor}>|</span>
+            {text}
+            <span className={styles.cursor}>|</span>
           </h2>
         </div>
       </div>
 
       <div className={styles.formPanel}>
-        <div className={styles.formWrap}>
-          {children}
-        </div>
+        <div className={styles.formWrap}>{children}</div>
       </div>
     </div>
   );

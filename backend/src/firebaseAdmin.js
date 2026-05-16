@@ -1,19 +1,24 @@
 const admin = require('firebase-admin');
+const path  = require('path');
 
 // Initialize once — safe to require from multiple modules
 if (!admin.apps.length) {
-  // In production, supply GOOGLE_APPLICATION_CREDENTIALS env var pointing to
-  // your service account JSON, or set FIREBASE_SERVICE_ACCOUNT_JSON as a
-  // JSON string in your deployment environment.
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
   if (serviceAccountJson) {
-    const serviceAccount = JSON.parse(serviceAccountJson);
+    // Production: single-line JSON string in env var
+    admin.initializeApp({
+      credential: admin.credential.cert(JSON.parse(serviceAccountJson)),
+    });
+  } else if (serviceAccountPath) {
+    // Local dev: path to a serviceAccount.json file (gitignored)
+    const serviceAccount = require(path.resolve(__dirname, '..', serviceAccountPath));
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
   } else {
-    // Falls back to Application Default Credentials (e.g. Cloud Functions, Cloud Run)
+    // Falls back to Application Default Credentials (Cloud Functions, Cloud Run)
     admin.initializeApp();
   }
 }

@@ -13,6 +13,7 @@ backend/dist/
 backend/.env
 backend/.env.local
 backend/*.log
+backend/serviceAccount.json
 logs/
 
 # ─── Environment files (never commit real secrets) ────────────────────────────

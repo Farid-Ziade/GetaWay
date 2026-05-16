@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // In production, lock this to your Firebase Hosting domain
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5175')
   .split(',')
   .map((o) => o.trim());
 

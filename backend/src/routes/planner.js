@@ -27,53 +27,63 @@ router.use(aiLimiter);
  */
 router.post('/generate', validatePlannerRequest, async (req, res, next) => {
   try {
-    const OpenAI = require('openai');
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const Groq = require('groq-sdk');
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const { lat, lng, budget, weather, nearbyPlaces = [], savedTrips = [] } = req.body;
+    const { lat, lng, budget, location, nearbyPlaces = [], savedTrips = [] } = req.body;
 
-    const budgetLabel = budget ? `$${parseFloat(budget).toFixed(0)}` : 'flexible';
-    const weatherDesc = weather?.description || 'unknown weather';
-    const placesDesc =
+    const budgetLabel  = budget ? `$${parseFloat(budget).toFixed(0)}` : 'flexible';
+    const locationLine = location
+      ? `The user is in or near: ${location}.${lat != null ? ` Coordinates: (${lat}, ${lng}).` : ''}`
+      : `The user is near coordinates (${lat}, ${lng}).`;
+    const placesDesc   =
       nearbyPlaces.length > 0
-        ? nearbyPlaces.slice(0, 10).map((p) => p.name).join(', ')
-        : 'no nearby places provided';
-    const avoidDesc =
+        ? `Nearby places of interest: ${nearbyPlaces.slice(0, 10).map((p) => p.name).join(', ')}.`
+        : '';
+    const avoidDesc    =
       savedTrips.length > 0
         ? `Avoid repeating these past trips: ${savedTrips.slice(0, 5).join(', ')}.`
         : '';
 
-    const prompt = `You are a weekend getaway planner. The user is near coordinates (${lat}, ${lng}).
-Current weather: ${weatherDesc}.
+    const prompt = `You are a weekend getaway planner. ${locationLine}
 Budget: ${budgetLabel}.
-Nearby places of interest: ${placesDesc}.
+${placesDesc}
 ${avoidDesc}
 
-Generate a practical, enjoyable 2-day weekend getaway plan. Include:
-- Day 1 and Day 2 schedules
-- Specific activity suggestions appropriate for the weather
-- Estimated costs per activity (total within budget)
-- A short title for the trip
-
-Respond in JSON format:
+Generate a practical, enjoyable 2-day weekend itinerary with 4-5 activities per day.
+Return ONLY valid JSON in this exact structure — no markdown, no extra keys:
 {
-  "title": "...",
-  "summary": "...",
+  "title": "Short descriptive trip title",
+  "totalCost": "Estimated total e.g. $185",
   "days": [
-    { "day": 1, "activities": [{ "time": "...", "activity": "...", "cost": "..." }] },
-    { "day": 2, "activities": [{ "time": "...", "activity": "...", "cost": "..." }] }
-  ],
-  "totalEstimatedCost": "..."
-}`;
+    {
+      "label": "Day 1 · Saturday",
+      "activities": [
+        {
+          "time": "9:00 AM",
+          "title": "Activity name",
+          "desc": "One to two sentence description.",
+          "cost": "~$20 or Free",
+          "type": "food"
+        }
+      ]
+    },
+    {
+      "label": "Day 2 · Sunday",
+      "activities": []
+    }
+  ]
+}
+The "type" field must be one of: food, sightseeing, adventure, activity.
+Keep the sum of all activity costs within the budget of ${budgetLabel}.`;
 
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
-      max_tokens: 1000,
+      max_tokens: 1500,
       temperature: 0.7,
     });
-
     const plan = JSON.parse(response.choices[0].message.content);
     res.json({ plan });
   } catch (err) {
