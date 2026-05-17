@@ -221,6 +221,16 @@
   gap: var(--space-2);
 }
 
+.radiusPresets {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.radiusPreset {
+  flex: 1;
+  justify-content: center;
+}
+
 .preset {
   padding: 4px 10px;
   border-radius: var(--radius-full);

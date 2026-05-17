@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../services/authService';
@@ -57,6 +57,10 @@ export default function Dashboard() {
   const [coords,          setCoords]          = useState(null);
   const [locLoading,      setLocLoading]      = useState(false);
   const [locError,        setLocError]        = useState('');
+  const cityInputRef = useRef(null);
+
+  // Radius (km) — only used when GPS coords are available
+  const [radius, setRadius] = useState(10);
 
   // Budget
   const [budget, setBudget] = useState(200);
@@ -85,6 +89,41 @@ export default function Dashboard() {
       .catch(() => {})
       .finally(() => setTripsLoading(false));
   }, [user?.uid]);
+
+  // ── Auto-request location on first load ───────────────────────────────────
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      cityInputRef.current?.focus();
+      return;
+    }
+    setLocLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setCoords({ lat, lng });
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { 'Accept-Language': 'en', 'User-Agent': 'GetaWay-App/1.0' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+          const city = addr.city || addr.town || addr.village || addr.county || '';
+          const country = addr.country || '';
+          setLocationLabel(city && country ? `${city}, ${country}` : city || country || 'Current location');
+        } catch {
+          setLocationLabel('Current location');
+        }
+        setLocLoading(false);
+      },
+      () => {
+        setLocLoading(false);
+        setLocError('Location access denied. Type a city below instead.');
+        setTimeout(() => cityInputRef.current?.focus(), 100);
+      },
+      { timeout: 8000 }
+    );
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -144,7 +183,7 @@ export default function Dashboard() {
       const payload = {
         budget,
         location: locationLabel,
-        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+        ...(coords ? { lat: coords.lat, lng: coords.lng, radius } : {}),
       };
       const { plan: generatedPlan } = await generatePlan(payload);
       setPlan(generatedPlan);
@@ -253,6 +292,7 @@ export default function Dashboard() {
             </button>
             <div className={styles.orDivider}>or</div>
             <input
+              ref={cityInputRef}
               type="text"
               className={styles.cityInput}
               placeholder="Type a city, e.g. London"
@@ -262,6 +302,27 @@ export default function Dashboard() {
             />
             {locError && <span className={styles.fieldError}>{locError}</span>}
           </div>
+
+          {/* Radius — only when GPS is active */}
+          {coords && (
+            <div className={styles.field}>
+              <label className={styles.label}>
+                <RadiusIcon /> Nearby radius
+              </label>
+              <div className={styles.radiusPresets}>
+                {[5, 10, 25, 50].map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`${styles.preset} ${styles.radiusPreset} ${radius === r ? styles.presetActive : ''}`}
+                    onClick={() => setRadius(r)}
+                  >
+                    {r} km
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Budget */}
           <div className={styles.field}>
@@ -481,6 +542,9 @@ function WeatherIcon() {
 }
 function CostIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+}
+function RadiusIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9" strokeDasharray="3 3"/></svg>;
 }
 function PencilIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
