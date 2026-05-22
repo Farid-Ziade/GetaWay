@@ -3,19 +3,28 @@ const path  = require('path');
 
 // Initialize once — safe to require from multiple modules
 if (!admin.apps.length) {
-  // Accept either FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT
+  const projectId   = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey  = process.env.FIREBASE_PRIVATE_KEY;
+
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
                           || process.env.FIREBASE_SERVICE_ACCOUNT;
   const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
-  if (serviceAccountJson) {
-    // Production: JSON string in env var
-    // Normalise private_key newlines — Railway/other hosts may double-escape them
+  if (projectId && clientEmail && privateKey) {
+    // Preferred for Railway: three separate vars — avoids JSON encoding issues
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
+      }),
+    });
+  } else if (serviceAccountJson) {
+    // Full JSON blob in one env var
     const parsed = JSON.parse(serviceAccountJson);
     if (parsed.private_key) {
-      parsed.private_key = parsed.private_key
-        .replace(/\\n/g, '\n')   // literal \n → newline
-        .replace(/\\r/g, '');    // strip stray \r
+      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n').replace(/\\r/g, '');
     }
     admin.initializeApp({
       credential: admin.credential.cert(parsed),
@@ -27,7 +36,6 @@ if (!admin.apps.length) {
       credential: admin.credential.cert(serviceAccount),
     });
   } else {
-    // Falls back to Application Default Credentials (Cloud Functions, Cloud Run)
     admin.initializeApp();
   }
 }
