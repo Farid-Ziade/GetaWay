@@ -53,6 +53,12 @@ FVM_SETUP.md
 # Claude Code settings and memory
 .claude/
 
+# Firebase local cache
+.firebase/
+
+# Android (Flutter remnant — project is now web-only)
+android/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
