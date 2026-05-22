@@ -5,6 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import AuthActionPage from './pages/AuthActionPage';
 import Dashboard from './pages/Dashboard';
 
 export default function App() {
@@ -16,6 +18,8 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/auth/action"   element={<AuthActionPage />} />
 
           {/* Protected */}
           <Route

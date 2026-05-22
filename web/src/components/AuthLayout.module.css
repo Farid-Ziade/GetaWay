@@ -1,0 +1,129 @@
+.root {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ── Left image panel ─────────────────────────────────────── */
+
+.panel {
+  flex: 1;
+  position: relative;
+  background-image: url('/assets/images/LoginAuth.png');
+  background-size: cover;
+  background-position: center center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-10) var(--space-10);
+  min-height: 100vh;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(27, 67, 50, 0.85) 0%,
+    rgba(0, 0, 0, 0.50) 100%
+  );
+}
+
+/* Logo — top */
+.logo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+.logo span {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: #fff;
+  letter-spacing: -0.4px;
+}
+
+/* Text — vertically centered */
+.panelBottom {
+  position: absolute;
+  top: 50%;
+  left: var(--space-10);
+  transform: translateY(-50%);
+  z-index: 1;
+  max-width: 420px;
+}
+
+.panelHeadline {
+  font-size: clamp(var(--text-2xl), 3vw, 44px);
+  font-weight: var(--font-bold);
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1.25;
+  max-width: 420px;
+  min-height: 2.6em;
+}
+
+.cursor {
+  display: inline-block;
+  font-weight: var(--font-normal);
+  color: var(--color-accent);
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Right form panel ─────────────────────────────────────── */
+
+.formPanel {
+  width: 480px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-8);
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+.formWrap {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .root {
+    flex-direction: column;
+  }
+
+  .panel {
+    min-height: 220px;
+    flex: none;
+    padding: var(--space-5) var(--space-6);
+    justify-content: space-between;
+  }
+
+  .panelBottom {
+    display: none;
+  }
+
+  .formPanel {
+    width: 100%;
+    min-height: unset;
+    padding: var(--space-8) var(--space-6) var(--space-12);
+    align-items: flex-start;
+  }
+
+  .formWrap {
+    max-width: 100%;
+  }
+}
