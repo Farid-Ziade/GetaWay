@@ -8,8 +8,13 @@ if (!admin.apps.length) {
 
   if (serviceAccountJson) {
     // Production: single-line JSON string in env var
+    // Railway may escape \n in the private key — unescape it
+    const parsed = JSON.parse(serviceAccountJson);
+    if (parsed.private_key) {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+    }
     admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(serviceAccountJson)),
+      credential: admin.credential.cert(parsed),
     });
   } else if (serviceAccountPath) {
     // Local dev: path to a serviceAccount.json file (gitignored)
