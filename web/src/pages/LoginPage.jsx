@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import Button from '../components/Button';
-import { login, loginWithGoogle, resetPassword } from '../services/authService';
+import { login, loginWithGoogle, logout, resetPassword, resendVerificationEmail } from '../services/authService';
+import { suggestEmailFix } from '../utils/emailTypo';
 import s from '../styles/auth.module.css';
 
 function friendlyError(code) {
@@ -34,13 +35,21 @@ export default function LoginPage() {
   const [loading, setLoading]         = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]             = useState('');
-  const [resetSent, setResetSent]     = useState(false);
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [resetSent, setResetSent]         = useState(false);
+  const [fieldErrors, setFieldErrors]     = useState({});
+  const [unverified, setUnverified]       = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg]         = useState('');
+  const [emailSuggestion, setEmailSuggestion] = useState('');
+  const [showGoogleHint, setShowGoogleHint]   = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setResetSent(false);
+    setUnverified(false);
+    setResendMsg('');
+    setShowGoogleHint(false);
 
     const errs = {};
     if (!email.trim())  errs.email    = 'Email is required.';
@@ -50,19 +59,39 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(email.trim(), password);
+      const user = await login(email.trim(), password);
+      if (!user.emailVerified) {
+        await logout();
+        setUnverified(true);
+        return;
+      }
       navigate('/dashboard');
     } catch (err) {
       const msg = friendlyError(err.code);
       if (msg) setError(msg);
+      if (err.code === 'auth/invalid-credential') setShowGoogleHint(true);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setResendMsg('');
+    setResendLoading(true);
+    try {
+      await resendVerificationEmail(email.trim(), password);
+      setResendMsg('Verification email sent — check your inbox.');
+    } catch {
+      setResendMsg('Could not resend. Make sure your email and password are correct.');
+    } finally {
+      setResendLoading(false);
     }
   }
 
   async function handleGoogle() {
     setError('');
     setResetSent(false);
+    setShowGoogleHint(false);
     setGoogleLoading(true);
     try {
       await loginWithGoogle();
@@ -81,12 +110,14 @@ export default function LoginPage() {
       return;
     }
     setError('');
+    setShowGoogleHint(false);
     try {
       await resetPassword(email.trim());
       setResetSent(true);
     } catch (err) {
       if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email address.');
+        // Don't confirm whether an account exists — silently show success to prevent enumeration
+        setResetSent(true);
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
       } else {
@@ -101,7 +132,22 @@ export default function LoginPage() {
       <p className={s.subtitle}>Log in to your GetaWay account</p>
 
       {error     && <div className={`${s.alert} ${s.alertError}`}>{error}</div>}
+      {showGoogleHint && (
+        <div className={`${s.alert} ${s.alertInfo}`}>
+          Did you sign up with Google? Use <strong>Continue with Google</strong> below — or click{' '}
+          <strong>Forgot password?</strong> to set a password and enable email login.
+        </div>
+      )}
       {resetSent && <div className={`${s.alert} ${s.alertSuccess}`}>Reset link sent — check your inbox.</div>}
+      {unverified && (
+        <div className={`${s.alert} ${s.alertWarning}`}>
+          Your email isn&apos;t verified yet. Check your inbox for the verification link.
+          <button className={s.resendBtn} onClick={handleResend} disabled={resendLoading}>
+            {resendLoading ? 'Sending…' : 'Resend email'}
+          </button>
+          {resendMsg && <div className={s.resendMsg}>{resendMsg}</div>}
+        </div>
+      )}
 
       <form className={s.form} onSubmit={handleSubmit} noValidate>
         <div className={s.field}>
@@ -111,11 +157,25 @@ export default function LoginPage() {
             type="email"
             className={`${s.input} ${fieldErrors.email ? s.inputError : ''}`}
             value={email}
-            onChange={e => { setEmail(e.target.value); setFieldErrors(fe => ({ ...fe, email: '' })); }}
+            onChange={e => { setEmail(e.target.value); setFieldErrors(fe => ({ ...fe, email: '' })); setEmailSuggestion(''); }}
+            onBlur={e => setEmailSuggestion(suggestEmailFix(e.target.value) || '')}
             placeholder="you@example.com"
             autoComplete="email"
           />
           {fieldErrors.email && <span className={s.fieldError}>{fieldErrors.email}</span>}
+          {emailSuggestion && (
+            <span className={s.emailSuggestion}>
+              Did you mean{' '}
+              <button
+                type="button"
+                className={s.emailSuggestionBtn}
+                onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(''); }}
+              >
+                {emailSuggestion}
+              </button>
+              ?
+            </span>
+          )}
         </div>
 
         <div className={s.field}>

@@ -37,6 +37,3 @@ export async function generatePlan(payload) {
   });
 }
 
-export async function fetchNearbyPlaces(lat, lng, radius = 5000) {
-  return apiFetch(`/api/places/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
-}

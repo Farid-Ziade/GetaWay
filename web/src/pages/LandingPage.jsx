@@ -67,11 +67,6 @@ export default function LandingPage() {
       <section className={styles.hero}>
         <div className={styles.heroOverlay} />
         <div className={styles.heroContent}>
-          <img
-            src="/assets/images/GetaWay_Logo.png"
-            alt="GetaWay"
-            className={styles.heroLogo}
-          />
           <h1 className={styles.heroTitle}>GetaWay</h1>
           <p className={`${styles.heroTagline} ${fade ? styles.fadeIn : styles.fadeOut}`}>
             {TAGLINES[taglineIndex]}

@@ -7,35 +7,6 @@ import { generatePlan } from '../services/apiService';
 import Button from '../components/Button';
 import styles from './Dashboard.module.css';
 
-// ── Mock plan (Phase 11 replaces this with real OpenAI call) ──────────────────
-const MOCK_PLAN = {
-  title: 'Your Weekend Escape',
-  totalCost: '$185',
-  weather: 'Partly cloudy · 21°C',
-  days: [
-    {
-      label: 'Day 1 · Saturday',
-      activities: [
-        { time: '9:00 AM',  title: 'Morning walk in the park',   desc: 'Start the day with a refreshing walk through the local park — great for clearing your head.', cost: 'Free',  type: 'activity' },
-        { time: '11:00 AM', title: 'Brunch at a local café',      desc: 'Try the highly-rated brunch spot just 10 min away. Known for their eggs benedict.', cost: '~$18', type: 'food' },
-        { time: '1:00 PM',  title: 'City museum tour',            desc: 'Explore the permanent and rotating exhibits at the main city museum.', cost: '~$15', type: 'sightseeing' },
-        { time: '4:00 PM',  title: 'Afternoon kayaking',          desc: 'Rent a kayak at the river dock for 2 hours — no experience needed.', cost: '~$30', type: 'adventure' },
-        { time: '7:30 PM',  title: 'Dinner at the waterfront',    desc: 'End the day with fresh seafood and great views at the riverside restaurant.', cost: '~$45', type: 'food' },
-      ],
-    },
-    {
-      label: 'Day 2 · Sunday',
-      activities: [
-        { time: '9:30 AM',  title: "Farmers' market",             desc: 'Browse the weekend market for fresh produce, local crafts, and street food.', cost: '~$20', type: 'activity' },
-        { time: '11:30 AM', title: 'Botanical garden',            desc: 'A peaceful stroll through the gardens — free entry on Sundays.', cost: 'Free',  type: 'sightseeing' },
-        { time: '1:30 PM',  title: 'Rooftop lunch',               desc: 'Casual lunch with great city views. Try the chicken wrap — staff favourite.', cost: '~$22', type: 'food' },
-        { time: '3:30 PM',  title: 'Bike ride along the coast',   desc: 'Rent bikes from the station near the garden and explore the coastal path.', cost: '~$20', type: 'adventure' },
-        { time: '6:00 PM',  title: 'Sunset drinks',               desc: 'Wrap up the weekend at the rooftop bar with great views of the sunset.', cost: '~$15', type: 'food' },
-      ],
-    },
-  ],
-};
-
 const TYPE_LABELS = {
   food: '🍽 Food',
   sightseeing: '🏛 Sightseeing',
@@ -55,6 +26,7 @@ export default function Dashboard() {
   // Location
   const [locationLabel,   setLocationLabel]   = useState('');
   const [coords,          setCoords]          = useState(null);
+  const [countryCode,     setCountryCode]     = useState('');
   const [locLoading,      setLocLoading]      = useState(false);
   const [locError,        setLocError]        = useState('');
   const cityInputRef = useRef(null);
@@ -64,6 +36,7 @@ export default function Dashboard() {
 
   // Budget
   const [budget, setBudget] = useState(200);
+
 
   // Plan
   const [planStatus, setPlanStatus] = useState('idle'); // idle | loading | success | error
@@ -110,6 +83,7 @@ export default function Dashboard() {
           const addr = data.address || {};
           const city = addr.city || addr.town || addr.village || addr.county || '';
           const country = addr.country || '';
+          setCountryCode((addr.country_code || '').toUpperCase());
           setLocationLabel(city && country ? `${city}, ${country}` : city || country || 'Current location');
         } catch {
           setLocationLabel('Current location');
@@ -121,7 +95,7 @@ export default function Dashboard() {
         setLocError('Location access denied. Type a city below instead.');
         setTimeout(() => cityInputRef.current?.focus(), 100);
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -147,6 +121,7 @@ export default function Dashboard() {
           const addr = data.address || {};
           const city = addr.city || addr.town || addr.village || addr.county || '';
           const country = addr.country || '';
+          setCountryCode((addr.country_code || '').toUpperCase());
           setLocationLabel(city && country ? `${city}, ${country}` : city || country || 'Current location');
         } catch {
           setLocationLabel('Current location');
@@ -157,7 +132,7 @@ export default function Dashboard() {
         setLocError('Location access denied. Type a city below instead.');
         setLocLoading(false);
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }
 
@@ -180,10 +155,16 @@ export default function Dashboard() {
     setPlan(null);
 
     try {
+      const savedPlaces = [...new Set(
+        savedTrips.slice(0, 10).flatMap(t =>
+          t.plan?.days?.flatMap(d => d.activities?.map(a => a.title) || []) || []
+        ).filter(Boolean)
+      )].slice(0, 40);
       const payload = {
         budget,
         location: locationLabel,
-        ...(coords ? { lat: coords.lat, lng: coords.lng, radius } : {}),
+        savedPlaces,
+        ...(coords ? { lat: coords.lat, lng: coords.lng, radius, countryCode } : {}),
       };
       const { plan: generatedPlan } = await generatePlan(payload);
       setPlan(generatedPlan);
@@ -193,6 +174,57 @@ export default function Dashboard() {
       setPlanError(err.message || 'Could not generate your plan. Please try again.');
       setPlanStatus('error');
     }
+  }
+
+  function openInMaps(label) {
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(label)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  }
+
+  function stripActivityPrefix(title) {
+    return title
+      .replace(/^(lunch|dinner|breakfast|brunch|supper|visit|explore|discover|morning|evening|afternoon|night)\s+(at|to|the|a|an)?\s*/i, '')
+      .trim();
+  }
+
+  function openDayInMaps(day) {
+    const activities = day.activities || [];
+    if (!activities.length) return;
+
+    // Append country to each stop so Google Maps resolves the right location.
+    // "Beirut, Lebanon" → "Lebanon"; plain label → use as-is.
+    const country = locationLabel.includes(',')
+      ? locationLabel.split(',').pop().trim()
+      : locationLabel;
+
+    const stops = activities.map(act => {
+      const isRevisit = act.title?.startsWith('Revisiting: ');
+      const raw = isRevisit ? act.title.slice('Revisiting: '.length) : act.title;
+      const title = stripActivityPrefix(raw);
+      return {
+        label:   country ? `${title}, ${country}` : title,
+        placeId: act.placeId || '',
+      };
+    });
+
+    const last      = stops[stops.length - 1];
+    const waypoints = stops.slice(0, -1);
+
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(last.label)}`;
+    if (last.placeId) url += `&destination_place_id=${last.placeId}`;
+
+    if (waypoints.length) {
+      url += `&waypoints=${waypoints.map(s => encodeURIComponent(s.label)).join('|')}`;
+      url += `&waypoint_place_ids=${waypoints.map(s => s.placeId).join('|')}`;
+    }
+    if (coords) {
+      url += `&origin=${coords.lat},${coords.lng}`;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   async function handleLogout() {
@@ -310,7 +342,7 @@ export default function Dashboard() {
                 <RadiusIcon /> Nearby radius
               </label>
               <div className={styles.radiusPresets}>
-                {[5, 10, 25, 50].map(r => (
+                {[10, 25, 50, 100].map(r => (
                   <button
                     key={r}
                     type="button"
@@ -469,36 +501,73 @@ export default function Dashboard() {
                   {plan.totalCost && <span><CostIcon /> Est. {plan.totalCost} total</span>}
                 </div>
               </div>
-              <button
-                className={`${styles.saveBtn} ${saved ? styles.saveBtnDone : ''}`}
-                onClick={handleSave}
-                disabled={saved}
-              >
-                <BookmarkIcon /> {saved ? 'Saved!' : 'Save trip'}
-              </button>
+              <div className={styles.planActions}>
+                <button
+                  className={`${styles.saveBtn} ${saved ? styles.saveBtnDone : ''}`}
+                  onClick={handleSave}
+                  disabled={saved}
+                >
+                  <BookmarkIcon /> {saved ? 'Saved!' : 'Save trip'}
+                </button>
+              </div>
             </div>
 
             {/* Days */}
             {plan.days.map((day, di) => (
               <div key={di} className={styles.daySection}>
-                <h3 className={styles.dayLabel}>{day.label}</h3>
+                <div className={styles.dayLabelRow}>
+                  <h3 className={styles.dayLabel}>{day.label}</h3>
+                  <button
+                    className={styles.mapsBtn}
+                    onClick={() => openDayInMaps(day)}
+                    type="button"
+                  >
+                    <MapsIcon /> Navigate
+                  </button>
+                </div>
                 <div className={styles.timeline}>
-                  {day.activities.map((act, ai) => (
-                    <div key={ai} className={`${styles.activity} ${styles[`type_${act.type}`]}`}>
-                      <div className={styles.activityLeft}>
-                        <span className={styles.activityTime}>{act.time}</span>
-                        <div className={styles.activityLine} />
-                      </div>
-                      <div className={styles.activityBody}>
-                        <div className={styles.activityTop}>
-                          <h4 className={styles.activityTitle}>{act.title}</h4>
-                          <span className={styles.activityCost}>{act.cost}</span>
+                  {day.activities.map((act, ai) => {
+                    const isRevisit = act.title?.startsWith('Revisiting: ');
+                    const displayTitle = isRevisit ? act.title.slice('Revisiting: '.length) : act.title;
+                    return (
+                      <div key={ai} className={`${styles.activity} ${styles[`type_${act.type}`]}`}>
+                        <div className={styles.activityLeft}>
+                          <span className={styles.activityTime}>{act.time}</span>
+                          <div className={styles.activityLine} />
                         </div>
-                        <p className={styles.activityDesc}>{act.desc}</p>
-                        <span className={styles.activityTag}>{TYPE_LABELS[act.type] || act.type}</span>
+                        <div className={styles.activityBody}>
+                          <div className={styles.activityTop}>
+                            <div className={styles.activityTitleRow}>
+                              <h4 className={styles.activityTitle}>{displayTitle}</h4>
+                              {isRevisit && <span className={styles.revisitBadge}>Revisiting</span>}
+                            </div>
+                            <div className={styles.activityTopRight}>
+                              <span className={styles.activityCost}>{act.cost}</span>
+                              <button
+                                className={styles.activityMapsBtn}
+                                onClick={() => {
+                                const country = locationLabel.includes(',') ? locationLabel.split(',').pop().trim() : locationLabel;
+                                const clean = stripActivityPrefix(displayTitle);
+                                const label = country ? `${clean}, ${country}` : clean;
+                                if (act.placeId) {
+                                  window.open(`https://www.google.com/maps/place/?q=place_id:${act.placeId}`, '_blank', 'noopener,noreferrer');
+                                } else {
+                                  openInMaps(label);
+                                }
+                              }}
+                                title="Open in Google Maps"
+                                type="button"
+                              >
+                                <MapsIcon />
+                              </button>
+                            </div>
+                          </div>
+                          <p className={styles.activityDesc}>{act.desc}</p>
+                          <span className={styles.activityTag}>{TYPE_LABELS[act.type] || act.type}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -548,4 +617,7 @@ function RadiusIcon() {
 }
 function PencilIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+}
+function MapsIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 }

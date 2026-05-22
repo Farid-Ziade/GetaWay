@@ -192,6 +192,7 @@
   box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
 }
 
+
 .cityInput:disabled {
   background: var(--color-surface-2);
   color: var(--color-text-muted);
@@ -218,11 +219,13 @@
 
 .budgetPresets {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
 .radiusPresets {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
@@ -414,6 +417,12 @@
   opacity: 1;
 }
 
+@media (hover: none) {
+  .deleteBtn {
+    opacity: 1;
+  }
+}
+
 .deleteBtn:hover {
   color: var(--color-error);
   background: rgba(239, 68, 68, 0.08);
@@ -552,7 +561,8 @@
 .planMeta {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
@@ -593,18 +603,55 @@
   opacity: 0.85;
 }
 
+.planActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.mapsBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  border: 1.5px solid #10B981;
+  background: transparent;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  font-weight: var(--font-semibold);
+  color: #10B981;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.mapsBtn:hover {
+  background: #10B981;
+  color: #fff;
+}
+
 /* Day section */
 .daySection {
   margin-bottom: var(--space-10);
+}
+
+.dayLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-primary-light);
 }
 
 .dayLabel {
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-primary-dark);
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--color-primary-light);
+  margin-bottom: 0;
   display: inline-block;
 }
 
@@ -708,6 +755,52 @@
   font-size: var(--text-xs);
   color: var(--color-text-light);
   font-weight: var(--font-medium);
+}
+
+.activityTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.activityTopRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.activityMapsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.activityMapsBtn:hover {
+  border-color: #10B981;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.revisitBadge {
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */

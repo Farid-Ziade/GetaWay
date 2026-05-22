@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import Button from '../components/Button';
-import { signUp, loginWithGoogle } from '../services/authService';
+import { signUp, loginWithGoogle, resendVerificationEmail } from '../services/authService';
+import { isValidEmailFormat, suggestEmailFix } from '../utils/emailTypo';
 import s from '../styles/auth.module.css';
 
 function friendlyError(code) {
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'An account with this email already exists.';
+      return 'An account with this email already exists. If you signed up with Google, log in using the Google button.';
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
     case 'auth/weak-password':
@@ -48,14 +49,18 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]         = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [resendLoading, setResendLoading]       = useState(false);
+  const [resendMsg, setResendMsg]               = useState('');
+  const [emailSuggestion, setEmailSuggestion]   = useState('');
 
   const strength = getStrength(password);
 
   function validate() {
     const errs = {};
     if (!name.trim())            errs.name     = 'Name is required.';
-    if (!email.trim())           errs.email    = 'Email is required.';
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email address.';
+    if (!email.trim())                    errs.email = 'Email is required.';
+    else if (!isValidEmailFormat(email))  errs.email = 'Enter a valid email address.';
     if (!password)               errs.password = 'Password is required.';
     else if (password.length < 8) errs.password = 'Password must be at least 8 characters.';
     if (!confirm)                errs.confirm  = 'Please confirm your password.';
@@ -72,13 +77,30 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      await signUp(email.trim(), password);
-      navigate('/dashboard');
+      await signUp(email.trim(), password, name.trim());
+      setVerificationSent(true);
     } catch (err) {
       const msg = friendlyError(err.code);
       if (msg) setError(msg);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setResendMsg('');
+    setResendLoading(true);
+    try {
+      const result = await resendVerificationEmail(email.trim(), password);
+      if (result === 'already_verified') {
+        navigate('/login');
+      } else {
+        setResendMsg('Verification email resent — check your inbox.');
+      }
+    } catch {
+      setResendMsg('Could not resend. Check your email and password.');
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -95,6 +117,28 @@ export default function SignupPage() {
     } finally {
       setGoogleLoading(false);
     }
+  }
+
+  if (verificationSent) {
+    return (
+      <AuthLayout>
+        <div className={s.verifyBox}>
+          <div className={s.verifyIcon}>✉️</div>
+          <h1 className={s.title}>Check your inbox</h1>
+          <p className={s.subtitle}>
+            We sent a verification link to <strong>{email}</strong>.<br />
+            Click it to activate your account, then log in.
+          </p>
+          {resendMsg && <div className={`${s.alert} ${s.alertSuccess}`}>{resendMsg}</div>}
+          <Button variant="primary" size="lg" fullWidth loading={resendLoading} onClick={handleResend}>
+            Resend verification email
+          </Button>
+          <p className={s.footer} style={{ marginTop: '1rem' }}>
+            Already verified? <Link to="/login">Log in</Link>
+          </p>
+        </div>
+      </AuthLayout>
+    );
   }
 
   return (
@@ -126,11 +170,28 @@ export default function SignupPage() {
             type="email"
             className={`${s.input} ${fieldErrors.email ? s.inputError : ''}`}
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={e => { setEmail(e.target.value); setEmailSuggestion(''); }}
+            onBlur={e => {
+              const suggestion = suggestEmailFix(e.target.value);
+              setEmailSuggestion(suggestion || '');
+            }}
             placeholder="you@example.com"
             autoComplete="email"
           />
           {fieldErrors.email && <span className={s.fieldError}>{fieldErrors.email}</span>}
+          {emailSuggestion && (
+            <span className={s.emailSuggestion}>
+              Did you mean{' '}
+              <button
+                type="button"
+                className={s.emailSuggestionBtn}
+                onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(''); }}
+              >
+                {emailSuggestion}
+              </button>
+              ?
+            </span>
+          )}
         </div>
 
         <div className={s.field}>

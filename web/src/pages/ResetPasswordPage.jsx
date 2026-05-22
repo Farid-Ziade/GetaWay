@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import Button from '../components/Button';
-import { verifyResetCode, applyPasswordReset } from '../services/authService';
+import { verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import s from '../styles/auth.module.css';
 
 function getStrength(pw) {
@@ -41,7 +42,7 @@ export default function ResetPasswordPage() {
       setVerifying(false);
       return;
     }
-    verifyResetCode(oobCode)
+    verifyPasswordResetCode(auth, oobCode)
       .then(() => { setCodeValid(true); setVerifying(false); })
       .catch(() => {
         setError('This link has expired or has already been used. Request a new one from the login page.');
@@ -65,7 +66,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      await applyPasswordReset(oobCode, password);
+      await confirmPasswordReset(auth, oobCode, password);
       setDone(true);
     } catch (err) {
       if (err.code === 'auth/expired-action-code') {

@@ -5,21 +5,33 @@ import {
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
-  verifyPasswordResetCode,
-  confirmPasswordReset,
+  sendEmailVerification,
+  updateProfile,
 } from 'firebase/auth';
 import { auth } from './firebase';
 
 const googleProvider = new GoogleAuthProvider();
 
-export async function signUp(email, password) {
+export async function signUp(email, password, displayName) {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
-  return credential.user;
+  if (displayName) {
+    await updateProfile(credential.user, { displayName });
+  }
+  await sendEmailVerification(credential.user);
+  await signOut(auth);
+}
+
+export async function resendVerificationEmail(email, password) {
+  const credential = await signInWithEmailAndPassword(auth, email, password);
+  if (credential.user.emailVerified) return 'already_verified';
+  await sendEmailVerification(credential.user);
+  await signOut(auth);
+  return 'sent';
 }
 
 export async function login(email, password) {
-  const credential = await signInWithEmailAndPassword(auth, email, password);
-  return credential.user;
+  const { user } = await signInWithEmailAndPassword(auth, email, password);
+  return user;
 }
 
 export async function loginWithGoogle() {
@@ -38,10 +50,3 @@ export async function resetPassword(email) {
   });
 }
 
-export async function verifyResetCode(oobCode) {
-  return verifyPasswordResetCode(auth, oobCode);
-}
-
-export async function applyPasswordReset(oobCode, newPassword) {
-  await confirmPasswordReset(auth, oobCode, newPassword);
-}
