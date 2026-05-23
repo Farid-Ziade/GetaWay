@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import Button from '../components/Button';
-import { signUp, loginWithGoogle, resendVerificationEmail } from '../services/authService';
+import { signUp, loginWithGoogle, resendVerificationEmail, checkVerificationStatus } from '../services/authService';
 import { isValidEmailFormat, suggestEmailFix } from '../utils/emailTypo';
 import s from '../styles/auth.module.css';
 
@@ -58,11 +58,26 @@ export default function SignupPage() {
   const [resendMsg, setResendMsg]               = useState('');
   const [emailSuggestion, setEmailSuggestion]   = useState('');
 
+  // Poll every 8 s while waiting for verification — catches cross-device/cross-tab confirms
+  useEffect(() => {
+    if (!verificationSent) return;
+    const interval = setInterval(async () => {
+      try {
+        const verified = await checkVerificationStatus(email.trim(), password);
+        if (verified) navigate('/dashboard');
+      } catch {
+        clearInterval(interval); // stop on auth errors (too-many-requests, wrong password, etc.)
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [verificationSent]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const strength = getStrength(password);
 
   function validate() {
     const errs = {};
     if (!name.trim())            errs.name     = 'Name is required.';
+    else if (name.trim().length > 50) errs.name = 'Name must be 50 characters or fewer.';
     if (!email.trim())                    errs.email = 'Email is required.';
     else if (!isValidEmailFormat(email))  errs.email = 'Enter a valid email address.';
     if (!password)               errs.password = 'Password is required.';
@@ -162,6 +177,7 @@ export default function SignupPage() {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Alex Johnson"
+            maxLength={50}
             autoComplete="name"
           />
           {fieldErrors.name && <span className={s.fieldError}>{fieldErrors.name}</span>}

@@ -38,6 +38,13 @@ export async function resendVerificationEmail(email, password) {
   return 'sent';
 }
 
+export async function checkVerificationStatus(email, password) {
+  const { user } = await signInWithEmailAndPassword(auth, email, password);
+  if (user.emailVerified) return true;
+  await signOut(auth);
+  return false;
+}
+
 export async function login(email, password) {
   const { user } = await signInWithEmailAndPassword(auth, email, password);
   return user;
