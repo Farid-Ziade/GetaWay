@@ -40,6 +40,7 @@ export async function resendVerificationEmail(email, password) {
 
 export async function checkVerificationStatus(email, password) {
   const { user } = await signInWithEmailAndPassword(auth, email, password);
+  await user.reload(); // force fresh state from server, bypasses cached emailVerified
   if (user.emailVerified) return true;
   await signOut(auth);
   return false;
