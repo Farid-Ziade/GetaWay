@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import Button from "../components/Button";
-import { signUp, loginWithGoogle, resendVerificationEmail } from "../services/authService";
+import { signUp, loginWithGoogle, resendVerificationEmail, logout } from "../services/authService";
 import { auth } from "../services/firebase";
 import { isValidEmailFormat, suggestEmailFix } from "../utils/emailTypo";
 import s from "../styles/auth.module.css";
@@ -59,7 +59,7 @@ export default function SignupPage() {
   const [resendMsg, setResendMsg] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState("");
 
-  // Poll while waiting for verification — catches cross-device/cross-tab confirms
+  // Poll while waiting for verification — when verified, sign out and go to /login
   useEffect(() => {
     if (!verificationSent) return;
     const interval = setInterval(async () => {
@@ -67,7 +67,11 @@ export default function SignupPage() {
         const user = auth.currentUser;
         if (!user) return;
         await user.reload();
-        if (user.emailVerified) navigate('/dashboard');
+        if (user.emailVerified) {
+          clearInterval(interval);
+          await logout();
+          navigate('/login');
+        }
       } catch {
         // keep trying on transient errors
       }
