@@ -27,7 +27,7 @@ export async function signUp(email, password, displayName) {
     await updateProfile(credential.user, { displayName });
   }
   await sendEmailVerification(credential.user, verificationSettings());
-  await signOut(auth);
+  // Keep user signed in — SignupPage polls auth.currentUser.reload() to detect verification
 }
 
 export async function resendVerificationEmail(email, password) {
