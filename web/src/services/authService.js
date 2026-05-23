@@ -54,7 +54,7 @@ export async function logout() {
 
 export async function resetPassword(email) {
   await sendPasswordResetEmail(auth, email, {
-    url: `${window.location.origin}/reset-password`,
+    url: `${window.location.origin}/login`,
     handleCodeInApp: false,
   });
 }
