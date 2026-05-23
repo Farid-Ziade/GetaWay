@@ -82,15 +82,19 @@ function VerifyEmailHandler({ oobCode }) {
 
 // ─── Password reset ───────────────────────────────────────────────────────────
 
+const REQUIREMENTS = [
+  { label: '8+ characters',     test: pw => pw.length >= 8 },
+  { label: 'Uppercase letter',  test: pw => /[A-Z]/.test(pw) },
+  { label: 'Number',            test: pw => /[0-9]/.test(pw) },
+  { label: 'Special character', test: pw => /[^A-Za-z0-9]/.test(pw) },
+];
+
 function getStrength(pw) {
   if (!pw) return null;
-  if (pw.length < 8) return { level: 1, label: 'Weak', cls: s.strengthWeak };
-  let bonus = 0;
-  if (/[A-Z]/.test(pw)) bonus++;
-  if (/[0-9]/.test(pw)) bonus++;
-  if (/[^A-Za-z0-9]/.test(pw)) bonus++;
-  if (bonus === 0) return { level: 2, label: 'Fair',   cls: s.strengthFair };
-  if (bonus === 1) return { level: 3, label: 'Good',   cls: s.strengthGood };
+  const met = REQUIREMENTS.filter(r => r.test(pw)).length;
+  if (met <= 1) return { level: 1, label: 'Weak',   cls: s.strengthWeak };
+  if (met === 2) return { level: 2, label: 'Fair',   cls: s.strengthFair };
+  if (met === 3) return { level: 3, label: 'Good',   cls: s.strengthGood };
   return              { level: 4, label: 'Strong', cls: s.strengthStrong };
 }
 
@@ -207,15 +211,28 @@ function ResetPasswordHandler({ oobCode }) {
             </button>
           </div>
           {password && strength && (
-            <>
-              <div className={`${s.strengthBar} ${s[`level${strength.level}`]}`}>
-                <div className={s.strengthSegment} />
-                <div className={s.strengthSegment} />
-                <div className={s.strengthSegment} />
-                <div className={s.strengthSegment} />
+            <div className={s.strengthBlock}>
+              <div className={s.strengthRow}>
+                <div className={`${s.strengthBar} ${s[`level${strength.level}`]}`}>
+                  <div className={s.strengthSegment} />
+                  <div className={s.strengthSegment} />
+                  <div className={s.strengthSegment} />
+                  <div className={s.strengthSegment} />
+                </div>
+                <span className={`${s.strengthLabel} ${strength.cls}`}>{strength.label}</span>
               </div>
-              <span className={`${s.strengthLabel} ${strength.cls}`}>{strength.label}</span>
-            </>
+              <ul className={s.reqList}>
+                {REQUIREMENTS.map(r => {
+                  const met = r.test(password);
+                  return (
+                    <li key={r.label} className={`${s.reqItem} ${met ? s.reqMet : ''}`}>
+                      <span className={s.reqIcon}>{met ? '✓' : '○'}</span>
+                      {r.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </div>
 
