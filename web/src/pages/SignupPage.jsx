@@ -70,8 +70,10 @@ export default function SignupPage() {
       try {
         const verified = await checkVerificationStatus(email.trim(), password);
         if (verified) navigate("/dashboard");
-      } catch {
-        clearInterval(interval); // stop on auth errors (too-many-requests, wrong password, etc.)
+      } catch (err) {
+        const permanent = ['auth/wrong-password', 'auth/invalid-credential', 'auth/user-not-found', 'auth/user-disabled'];
+        if (permanent.includes(err?.code)) clearInterval(interval);
+        // transient errors (network, rate-limit) — keep trying
       }
     }, 8000);
     return () => clearInterval(interval);
