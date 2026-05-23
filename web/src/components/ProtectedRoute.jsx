@@ -7,7 +7,7 @@ export default function ProtectedRoute({ children }) {
   // Still checking auth state — render nothing to avoid flash
   if (user === undefined) return null;
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user || !user.emailVerified) return <Navigate to="/login" replace />;
 
   return children;
 }
