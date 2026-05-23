@@ -275,41 +275,84 @@
 
 /* ── Password strength bar ────────────────────────────────── */
 
+.strengthBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.strengthRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .strengthBar {
   display: flex;
   gap: 4px;
-  margin-top: var(--space-2);
+  flex: 1;
 }
 
 .strengthSegment {
   flex: 1;
-  height: 3px;
+  height: 5px;
   border-radius: var(--radius-full);
   background: var(--color-border);
-  transition: background var(--transition-slow);
+  transition: background 0.25s ease;
 }
 
-/* level 1 — weak: only first segment red */
 .level1 .strengthSegment:nth-child(1) { background: var(--color-error); }
 
-/* level 2 — fair: first two yellow */
 .level2 .strengthSegment:nth-child(1),
 .level2 .strengthSegment:nth-child(2) { background: var(--color-warning); }
 
-/* level 3 — good: first three green */
 .level3 .strengthSegment:nth-child(1),
 .level3 .strengthSegment:nth-child(2),
 .level3 .strengthSegment:nth-child(3) { background: var(--color-success); }
 
-/* level 4 — strong: all four green */
 .level4 .strengthSegment { background: var(--color-success); }
 
 .strengthLabel {
   font-size: var(--text-xs);
-  margin-top: 5px;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  min-width: 44px;
+  text-align: right;
 }
 
-.strengthWeak  { color: var(--color-error); }
-.strengthFair  { color: var(--color-warning); }
-.strengthGood  { color: var(--color-success); }
+.strengthWeak   { color: var(--color-error); }
+.strengthFair   { color: var(--color-warning); }
+.strengthGood   { color: var(--color-success); }
 .strengthStrong { color: var(--color-success); }
+
+/* ── Requirement checklist ────────────────────────────────── */
+
+.reqList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1) var(--space-3);
+}
+
+.reqItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+}
+
+.reqMet {
+  color: var(--color-success);
+}
+
+.reqIcon {
+  font-size: 11px;
+  line-height: 1;
+  width: 12px;
+  text-align: center;
+}
