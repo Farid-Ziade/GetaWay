@@ -75,7 +75,7 @@ export default function SignupPage() {
         if (permanent.includes(err?.code)) clearInterval(interval);
         // transient errors (network, rate-limit) — keep trying
       }
-    }, 8000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [verificationSent]); // eslint-disable-line react-hooks/exhaustive-deps
 
