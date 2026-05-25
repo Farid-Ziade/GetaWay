@@ -30,7 +30,7 @@ export default function Navbar({ transparent = false }) {
     <nav className={navClass}>
       <div className={styles.inner}>
         {/* Logo */}
-        <Link to="/" className={styles.logo}>
+        <Link to="/" className={styles.logo} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <img src="/assets/images/GetaWay_Logo.png" alt="GetaWay" className={styles.logoImg} />
           <span className={styles.logoText}>GetaWay</span>
         </Link>
