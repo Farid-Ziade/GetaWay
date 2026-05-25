@@ -29,7 +29,14 @@ export default function Dashboard() {
   const [countryCode,     setCountryCode]     = useState('');
   const [locLoading,      setLocLoading]      = useState(false);
   const [locError,        setLocError]        = useState('');
-  const cityInputRef = useRef(null);
+  const cityInputRef    = useRef(null);
+  const suggestionsRef  = useRef(null);
+  const suggestDebounce = useRef(null);
+
+  // Autocomplete
+  const [suggestions,     setSuggestions]     = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [cityCoords,      setCityCoords]      = useState(null); // lat/lng from autocomplete selection
 
   // Radius (km) — only used when GPS coords are available
   const [radius, setRadius] = useState(10);
@@ -99,7 +106,61 @@ export default function Dashboard() {
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
+
+  async function fetchSuggestions(query) {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1&featuretype=city`,
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'GetaWay-App/1.0' } }
+      );
+      const data = await res.json();
+      const seen = new Set();
+      const items = data
+        .filter(item => item.address)
+        .map(item => {
+          const addr = item.address;
+          const city = addr.city || addr.town || addr.village || addr.county || item.display_name.split(',')[0].trim();
+          const country = addr.country || '';
+          const label = city && country ? `${city}, ${country}` : city || country;
+          return {
+            label,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
+            countryCode: (addr.country_code || '').toUpperCase(),
+          };
+        })
+        .filter(item => {
+          if (!item.label || seen.has(item.label)) return false;
+          seen.add(item.label);
+          return true;
+        })
+        .slice(0, 5);
+      setSuggestions(items);
+      setShowSuggestions(items.length > 0);
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }
+
+  function handleSelectSuggestion(item) {
+    setLocationLabel(item.label);
+    setCityCoords({ lat: item.lat, lng: item.lng, countryCode: item.countryCode });
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
 
   async function handleUseLocation() {
     if (!navigator.geolocation) {
@@ -137,9 +198,18 @@ export default function Dashboard() {
   }
 
   function handleManualLocation(e) {
-    setLocationLabel(e.target.value);
+    const val = e.target.value;
+    setLocationLabel(val);
     setCoords(null);
+    setCityCoords(null);
     setLocError('');
+    clearTimeout(suggestDebounce.current);
+    if (val.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestDebounce.current = setTimeout(() => fetchSuggestions(val), 350);
   }
 
   async function handleGenerate() {
@@ -164,7 +234,11 @@ export default function Dashboard() {
         budget,
         location: locationLabel,
         savedPlaces,
-        ...(coords ? { lat: coords.lat, lng: coords.lng, radius, countryCode } : {}),
+        ...(coords
+          ? { lat: coords.lat, lng: coords.lng, radius, countryCode }
+          : cityCoords
+          ? { lat: cityCoords.lat, lng: cityCoords.lng, radius: 25, countryCode: cityCoords.countryCode }
+          : {}),
       };
       const { plan: generatedPlan } = await generatePlan(payload);
       setPlan(generatedPlan);
@@ -323,15 +397,32 @@ export default function Dashboard() {
               {locLoading ? 'Getting location…' : coords ? 'Using current location' : 'Use my location'}
             </button>
             <div className={styles.orDivider}>or</div>
-            <input
-              ref={cityInputRef}
-              type="text"
-              className={styles.cityInput}
-              placeholder="Type a city, e.g. London"
-              value={coords ? '' : locationLabel}
-              onChange={handleManualLocation}
-              disabled={!!coords}
-            />
+            <div className={styles.cityInputWrap} ref={suggestionsRef}>
+              <input
+                ref={cityInputRef}
+                type="text"
+                className={styles.cityInput}
+                placeholder="Type a city, e.g. Beirut"
+                value={coords ? '' : locationLabel}
+                onChange={handleManualLocation}
+                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                disabled={!!coords}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className={styles.suggestList}>
+                  {suggestions.map((item, i) => (
+                    <li
+                      key={i}
+                      className={styles.suggestItem}
+                      onMouseDown={() => handleSelectSuggestion(item)}
+                    >
+                      <span className={styles.suggestIcon}><LocationIcon /></span>
+                      {item.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             {locError && <span className={styles.fieldError}>{locError}</span>}
           </div>
 

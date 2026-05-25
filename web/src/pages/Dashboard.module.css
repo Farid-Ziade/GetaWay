@@ -803,6 +803,49 @@
   flex-shrink: 0;
 }
 
+/* ── City autocomplete ────────────────────────────────────────────────────── */
+
+.cityInputWrap {
+  position: relative;
+}
+
+.suggestList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.suggestItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.suggestItem:hover {
+  background: var(--color-surface-2);
+}
+
+.suggestIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  display: flex;
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
