@@ -99,7 +99,6 @@ export default function Dashboard() {
       },
       () => {
         setLocLoading(false);
-        setLocError('Location access denied. Type a city below instead.');
         setTimeout(() => cityInputRef.current?.focus(), 100);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
