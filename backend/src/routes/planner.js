@@ -342,7 +342,7 @@ router.post('/generate', validatePlannerRequest, async (req, res, next) => {
       : '';
 
     const budgetNum  = budget ? parseFloat(budget) : null;
-    const budgetMin  = budgetNum ? `$${Math.round(budgetNum * 0.80)}` : null;
+    const budgetMin  = budgetNum ? `$${Math.round(budgetNum * 0.85)}` : null;
     const actCount   = 9; // 4-5 per day × 2 days
     const budgetRule = budgetNum
       ? `BUDGET CONSTRAINT: Total budget is ${budgetLabel} for the full weekend (~${actCount} activities).\n` +
@@ -359,11 +359,12 @@ router.post('/generate', validatePlannerRequest, async (req, res, next) => {
         (budgetNum <= 100
           ? `mostly free activities + cheap eats (street food, cafes). Avoid expensive restaurants and paid attractions.`
           : budgetNum <= 200
-          ? `mix of free activities, casual dining, and 1-2 paid attractions. Skip fine dining.`
+          ? `2-3 sit-down restaurant meals ($20-35 each), 2 paid attractions ($15-25 each), and at most 1-2 free activities. You MUST fill the budget — mostly free plans are wrong.`
           : budgetNum <= 400
           ? `casual to mid-range dining, several paid attractions, a couple of upscale meals.`
           : `upscale dining, premium attractions, guided experiences. This is a comfortable budget.`) + `\n` +
-        `The SUM of all "cost" fields MUST land between ${budgetMin} and ${budgetLabel}. Do NOT go far under budget.`
+        `The SUM of all "cost" fields MUST land between ${budgetMin} and ${budgetLabel}. ` +
+        `Going below ${budgetMin} is a FAILURE. If activities are cheap, add more paid ones or upgrade to a higher tier. Never pad with free activities to avoid spending.`
       : '';
 
     const prompt = `You are a weekend getaway planner. ${locationLine}
@@ -378,7 +379,7 @@ Generate a practical, enjoyable 2-day weekend itinerary with 4-5 activities per 
 STRICT RULES — violating any of these is not allowed:
 1. COUNTRY: Every single activity MUST be located in ${location || 'the same country as the user'}. Do NOT suggest places in other countries under any circumstances.
 2. RADIUS: ${radiusKm ? `Every single activity MUST be within ${radiusKm} km of (${lat}, ${lng}). Do NOT include anything farther.` : 'Keep all activities within a reasonable travel distance.'}
-3. BUDGET: ${budgetNum ? `Costs must reflect real-world prices (see BUDGET CONSTRAINT above). Never write $8 for a restaurant. The SUM of all costs must land between ${budgetMin} and ${budgetLabel}. Do NOT go far under budget.` : 'Keep costs reasonable and realistic.'}
+3. BUDGET: ${budgetNum ? `Costs must reflect real-world prices (see BUDGET CONSTRAINT above). Never write $8 for a restaurant. The SUM of all costs MUST be between ${budgetMin} and ${budgetLabel}. A plan under ${budgetMin} is INVALID — add paid activities or upgrade tiers instead of padding with free ones.` : 'Keep costs reasonable and realistic.'}
 4. ROUTING: ${day1Zone ? `Day 1 = [${day1Zone}] venues ONLY. Day 2 = [${day2Zone}] venues ONLY. This is already decided — do not deviate. Within each day order venues to minimise travel.` : 'Order activities to minimise travel. Never zigzag.'}
 5. VENUES: ${nearbyPlaces.length > 0 ? `Every venue "title" MUST be copied verbatim from the APPROVED VENUE LIST numbered above. If you use a name not in that list, your response is invalid. For activities with no matching venue, write a generic description — never a made-up name.` : 'Do not use any specific venue or restaurant names — generic activity descriptions only.'}
 6. SCHEDULE: Meals at logical times (breakfast 7-10am, lunch 11am-2pm, dinner 6-9pm). No 9am dinners.

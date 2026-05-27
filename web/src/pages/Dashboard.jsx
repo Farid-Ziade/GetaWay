@@ -227,7 +227,12 @@ export default function Dashboard() {
     try {
       const savedPlaces = [...new Set(
         savedTrips.slice(0, 10).flatMap(t =>
-          t.plan?.days?.flatMap(d => d.activities?.map(a => a.title) || []) || []
+          t.plan?.days?.flatMap(d => d.activities?.map(a => {
+            const raw = (a.title || '').startsWith('Revisiting: ')
+              ? a.title.slice('Revisiting: '.length)
+              : (a.title || '');
+            return raw.replace(/^(lunch|dinner|breakfast|brunch|supper|visit|explore|discover|morning|evening|afternoon|night)\s+(at|to|the|a|an)?\s*/i, '').trim();
+          }) || []) || []
         ).filter(Boolean)
       )].slice(0, 40);
       const payload = {
@@ -403,10 +408,9 @@ export default function Dashboard() {
                 type="text"
                 className={styles.cityInput}
                 placeholder="Type a city, e.g. Beirut"
-                value={coords ? '' : locationLabel}
+                value={locationLabel}
                 onChange={handleManualLocation}
                 onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                disabled={!!coords}
               />
               {showSuggestions && suggestions.length > 0 && (
                 <ul className={styles.suggestList}>
@@ -641,7 +645,10 @@ export default function Dashboard() {
                                 const clean = stripActivityPrefix(displayTitle);
                                 const label = country ? `${clean}, ${country}` : clean;
                                 if (act.placeId) {
-                                  window.open(`https://www.google.com/maps/place/?q=place_id:${act.placeId}`, '_blank', 'noopener,noreferrer');
+                                  window.open(
+                                    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(label)}&destination_place_id=${act.placeId}`,
+                                    '_blank', 'noopener,noreferrer'
+                                  );
                                 } else {
                                   openInMaps(label);
                                 }
