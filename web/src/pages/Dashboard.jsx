@@ -230,7 +230,9 @@ export default function Dashboard() {
         setLocLoading(false);
       },
       () => {
-        setLocError("Location access denied. Type a city below instead.");
+        setLocError(
+          "Location access denied. Have you checked if your location is on ? Type a city below instead.",
+        );
         setLocLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
