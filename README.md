@@ -4,7 +4,7 @@
 
 GetaWay helps you discover and plan the perfect 2-day weekend trip based on your location, budget, current weather, and past trips. The AI generates a personalised itinerary using real nearby venues and avoids places you've already visited.
 
-Live at **[getaway-d6987.web.app](https://getaway-d6987.web.app)**
+Live at **getaway.services**
 
 ---
 
@@ -30,33 +30,6 @@ GetaWay/
 ├── web/          ← React + Vite frontend (Firebase Hosting)
 └── backend/      ← Node.js + Express API (Railway)
 ```
-
----
-
-## Quick Start
-
-### Frontend
-
-```bash
-cd web
-cp .env.example .env.local
-# Fill in .env.local with your Firebase keys and backend URL
-npm install
-npm run dev
-# http://localhost:5173
-```
-
-### Backend
-
-```bash
-cd backend
-cp .env.example .env
-# Fill in .env with your secrets
-npm install
-npm run dev
-# http://localhost:5000
-```
-
 ---
 
 ## Tech Stack
@@ -80,32 +53,3 @@ npm run dev
 - All AI and Places calls go through the authenticated Express backend.
 - Every backend route requires a valid Firebase ID token.
 - Firestore rules restrict users to their own data.
-
----
-
-## Environment Variables
-
-### `web/.env.local`
-
-```
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_GOOGLE_MAPS_API_KEY=
-VITE_API_BASE_URL=https://your-backend.up.railway.app
-```
-
-### `backend/.env`
-
-```
-GROQ_API_KEY=
-GOOGLE_PLACES_API_KEY=
-OPENWEATHERMAP_API_KEY=
-FIREBASE_PROJECT_ID=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_PRIVATE_KEY=
-PORT=5000
-```
